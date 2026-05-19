@@ -1,137 +1,155 @@
-# Solana Paper Trading Bot
+# SOL BOT — Solana Paper Trading Bot
 
-An autonomous paper trading bot for SOL/USDT built in Python. Simulates real trades against live price data using a multi-signal confluence strategy. Designed so the execution layer can be swapped to live Jupiter/Raydium trading by replacing one module.
+Automated SOL/USD paper trading bot running on 15-minute candles. Combines four technical signals with a confluence filter, manages risk with ATR-based stop-loss and take-profit levels, and persists all trades to a local SQLite database. Comes with a live web dashboard and a full backtesting engine with an interactive HTML chart.
 
----
+## How it works
+
+1. **Wait** — sleeps until the current 15-minute candle closes
+2. **Fetch** — pulls the latest 100 candles from Coinbase via ccxt
+3. **Signal** — evaluates RSI, EMA crossover, Bollinger Band breakout, and ADX filter; requires at least 2 agreeing signals to enter
+4. **Size** — calculates position size using 2% fixed-risk per trade, capped at available cash
+5. **Execute** — opens a long position with ATR-derived SL/TP levels; closes on signal reversal, SL hit, or TP hit
+6. **Guard** — halts all trading for the day if the portfolio drops more than 5%
+
+Starts automatically on Windows login via a Startup folder shortcut.
 
 ## Setup
 
-### 1. Prerequisites
-
-- Python 3.11+
-- `pip` or a virtual environment manager
-
-### 2. Install dependencies
-
-```bash
+**1. Clone and install dependencies**
+```
+git clone https://github.com/samirawad24/solana-bot.git
 cd solana-bot
 python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS/Linux
-source .venv/bin/activate
-
-pip install -r requirements.txt
+.venv\Scripts\pip install -r requirements.txt
 ```
 
-### 3. Configure environment
+**2. Configure**
+```
+copy .env.example .env
+```
+No API keys are needed for paper mode — live prices are fetched from Coinbase's public feed.
 
-```bash
-cp .env.example .env
-# Edit .env if you want to override defaults
+**3. Run**
+```
+start.bat
+```
+Opens the paper trader in its own console window and launches the dashboard at `http://localhost:8081` automatically.
+
+**Or run individually**
+```
+python main.py --mode paper          # paper trading loop
+python main.py --mode backtest       # backtest on 12 months of history
+python main.py --mode backtest --months 6   # custom lookback
+python dashboard.py                  # dashboard only
 ```
 
-### 4. Review `config.yaml`
+## Dashboard
 
-All strategy parameters, risk limits, and signal toggles live in `config.yaml`. You do not need to touch `.env` for most tuning — `config.yaml` is the primary knob.
-
----
-
-## Running the bot
-
-### Paper trading (live loop)
-
-```bash
-python main.py --mode paper
+```
+python dashboard.py
 ```
 
-The bot polls live 15-minute candles from Binance (no API key required), evaluates signals on each new candle close, and simulates fills. State is persisted to `portfolio.db` so you can stop and restart freely.
+Opens `http://localhost:8081` automatically with:
 
-### Backtesting
+- **Header** — live equity, cash, unrealized and realized P&L
+- **Stats row** — total P&L, win rate, trade count, avg P&L/trade, open positions
+- **Equity curve** — Chart.js line chart built from portfolio snapshots
+- **SOL/USD candlestick** — 200-bar Lightweight Charts chart with buy markers (▲ green = win, ▲ yellow = open, ▲ red = loss)
+- **Trade history** — every trade with entry, exit, P&L, signal, and status
 
-```bash
-python main.py --mode backtest --months 12
+Auto-refreshes every 60 seconds.
+
+## Configuration
+
+All parameters are in `config.yaml`.
+
+| Setting | Default | Description |
+|---|---|---|
+| `trading.symbol` | `SOL/USD` | CCXT market symbol |
+| `trading.timeframe` | `15m` | Candle interval |
+| `trading.exchange` | `coinbase` | CCXT exchange ID |
+| `portfolio.initial_balance` | `10000` | Starting USD balance |
+| `portfolio.risk_per_trade` | `0.02` | Fraction of portfolio risked per trade |
+| `portfolio.max_open_positions` | `3` | Maximum concurrent positions |
+| `portfolio.daily_loss_limit` | `0.05` | Portfolio drawdown that triggers a trading halt |
+| `portfolio.slippage` | `0.003` | Simulated slippage per fill (0.3%) |
+| `portfolio.fee` | `0.0025` | Simulated fee per trade (0.25%) |
+| `stops.stop_loss_atr` | `2.0` | Stop loss distance in ATR multiples |
+| `stops.take_profit_atr` | `3.0` | Take profit distance in ATR multiples |
+| `strategy.min_signals` | `2` | Minimum agreeing signals required to enter |
+
+## Signals
+
+| Signal | Buy condition | Sell condition |
+|---|---|---|
+| RSI (14) | RSI < 30 (oversold) | RSI > 70 (overbought) |
+| EMA crossover (9/21) | Fast EMA crosses above slow EMA | Fast EMA crosses below slow EMA |
+| Bollinger breakout (20, 2σ) | Close below lower band + volume spike | Close above upper band + volume spike |
+| ADX filter (14) | ADX > 25 (trending market required) | ADX > 25 (trending market required) |
+
+At least `min_signals` indicators must agree before a position opens. The ADX filter acts as a gate — if ADX ≤ 25 no trade fires regardless of other signals.
+
+## Backtesting
+
+```
+python main.py --mode backtest
+python main.py --mode backtest --months 6
 ```
 
-Fetches 12 months of historical SOL/USDT candles and runs the full strategy against them. Outputs an HTML report to `reports/backtest_<timestamp>.html` with:
-- Equity curve chart
-- Total return, win rate, Sharpe ratio, max drawdown, trade count
+Generates an interactive HTML report in `reports/` with a dark-theme Bokeh chart: OHLCV candlesticks, volume, RSI, ADX, equity curve, and buy/sell markers coloured by outcome.
 
-You can change the lookback with `--months N`.
+## Coinbase sandbox (optional)
 
----
+To route orders through the real Coinbase Advanced Trade sandbox instead of the local paper simulator:
 
-## Tuning the config
+```
+# fill in CB_SANDBOX_KEY_FILE or CB_SANDBOX_API_KEY + CB_SANDBOX_API_SECRET in .env
+python main.py --mode sandbox
+```
 
-| Key | What it controls |
-|-----|-----------------|
-| `trading.timeframe` | Candle interval — try `5m`, `15m`, `1h` |
-| `strategy.min_signals` | How many signals must agree to enter (1–4) |
-| `signals.<name>.enabled` | Toggle individual signals on/off |
-| `portfolio.risk_per_trade` | Fraction of portfolio risked per trade (e.g. `0.01` = 1%) |
-| `portfolio.daily_loss_limit` | Halt threshold (e.g. `0.05` = 5%) |
-| `stops.stop_loss_atr` | ATR multiplier for stop loss |
-| `stops.take_profit_atr` | ATR multiplier for take profit |
+Sandbox keys can be created at [portal.cdp.coinbase.com](https://portal.cdp.coinbase.com) — no real money is used.
 
-After changing config, re-run backtest to see the impact before running paper mode.
+## Running tests
 
----
+```
+.venv\Scripts\pytest tests/ -v
+```
 
-## Reading the reports
-
-**Console output** — each candle evaluation prints a status line. Trade fills show entry price, signal triggers, position size, SL/TP levels, and fees paid.
-
-**Daily summary** — printed at midnight (UTC) and on clean shutdown. Shows: starting balance, ending balance, realized PnL, number of trades, win rate for the day.
-
-**Backtest HTML report** — open the file in any browser. The equity curve shows portfolio value over time. The stats table at the top summarizes key metrics. Individual trade markers are plotted on the price chart.
-
----
+21 tests across 8 modules: RSI signal, EMA signal, Bollinger signal, ADX filter, strategy combiner, position sizer, ATR stops, and daily loss limit.
 
 ## Project structure
 
 ```
 solana-bot/
-├── config.yaml          # all tunable parameters
-├── .env                 # secrets / overrides (not committed)
-├── main.py              # entry point (--mode paper | backtest)
-├── src/
-│   ├── data/            # price feed + historical loader
-│   ├── strategy/        # one file per signal + confluence combiner
-│   ├── risk/            # position sizing, ATR stops, daily limits
-│   ├── execution/       # paper_executor.py (swap this for live)
-│   ├── portfolio/       # in-memory state + SQLite persistence
-│   └── reporting/       # rich logs, daily summary, HTML report
-└── tests/               # pytest unit tests
+├── main.py                  # CLI entry point (paper / sandbox / backtest)
+├── dashboard.py             # Live web dashboard (port 8081)
+├── start.bat                # Launcher: starts bot + dashboard together
+├── config.yaml              # All tunable parameters
+├── requirements.txt
+├── .env.example
+└── src/
+    ├── config.py
+    ├── data/
+    │   ├── price_feed.py    # Live candle fetching + candle-close waiter
+    │   └── historical.py    # Historical OHLCV download for backtesting
+    ├── strategy/
+    │   ├── rsi_signal.py
+    │   ├── ema_signal.py
+    │   ├── bollinger_signal.py
+    │   ├── adx_filter.py
+    │   └── combiner.py      # Confluence logic
+    ├── risk/
+    │   ├── position_sizer.py
+    │   ├── stops.py         # ATR-based SL/TP calculator
+    │   └── daily_limit.py   # Daily drawdown guard
+    ├── execution/
+    │   ├── paper_executor.py       # Local paper fills with slippage + fees
+    │   └── coinbase_executor.py    # Coinbase Advanced Trade sandbox executor
+    ├── portfolio/
+    │   ├── state.py         # In-memory portfolio (cash, positions, P&L)
+    │   └── db.py            # SQLite persistence (trades + snapshots tables)
+    └── reporting/
+        ├── logger.py        # Structured candle + fill logging
+        ├── daily_summary.py
+        └── backtest_report.py  # Bokeh HTML chart generator
 ```
-
----
-
-## How to switch to live trading
-
-This section documents exactly what would need to change to go live. **No live-trading code exists in this repo.**
-
-1. **Create `src/execution/live_executor.py`** implementing the same `BaseExecutor` interface as `paper_executor.py`. Inside, call Jupiter or Raydium swap APIs using your wallet's private key.
-
-2. **Add secrets to `.env`**:
-   - `SOLANA_PRIVATE_KEY` — your wallet private key (never commit this)
-   - `RPC_URL` — a Solana RPC endpoint (e.g. Helius, QuickNode)
-
-3. **Swap the executor in `main.py`**: change the import from `PaperExecutor` to `LiveExecutor`. The rest of the pipeline (signals, risk, portfolio tracking) is unchanged.
-
-4. **Adjust fees/slippage in `config.yaml`** to match real Jupiter routing fees (currently estimated at 0.25%).
-
-5. **Test on devnet first** — Jupiter and Raydium both support Solana devnet. Run against devnet with a throwaway wallet before mainnet.
-
-6. **Harden the daily loss limit** — the paper engine halts by stopping the loop; a live engine must also cancel any open limit orders via the Solana program.
-
-> The paper bot deliberately has no private key handling, no wallet imports, and no on-chain transaction code.
-
----
-
-## Running tests
-
-```bash
-pytest tests/ -v
-```
-
-Tests cover: RSI signal, EMA signal, Bollinger signal, ADX filter, strategy combiner, position sizer, ATR stops, and daily loss limit logic.
