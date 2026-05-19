@@ -1,0 +1,55 @@
+# ── Trading parameters ──────────────────────────────────────────────────────
+trading:
+  symbol: "SOL/USD"
+  timeframe: "15m"          # CCXT timeframe string: 1m, 5m, 15m, 1h, 4h, 1d
+  exchange: "coinbase"      # binance is geo-restricted in some regions; coinbase is the fallback
+
+# ── Portfolio / risk ─────────────────────────────────────────────────────────
+portfolio:
+  initial_balance: 10000    # USD starting balance
+  risk_per_trade: 0.02      # 2% of portfolio per trade
+  max_open_positions: 3
+  daily_loss_limit: 0.05    # halt if portfolio drops 5% in one day
+  slippage: 0.003           # 0.3% simulated slippage per fill
+  fee: 0.0025               # 0.25% simulated fee per trade
+
+# ── Signals (set enabled: false to disable a signal from confluence) ─────────
+signals:
+  rsi:
+    enabled: true
+    period: 14
+    oversold: 30
+    overbought: 70
+  ema:
+    enabled: true
+    fast: 9
+    slow: 21
+  bollinger:
+    enabled: true
+    period: 20
+    std_dev: 2.0
+    volume_multiplier: 1.5  # volume must be N× the rolling average
+  adx:
+    enabled: true
+    period: 14
+    threshold: 25           # only trade when ADX > threshold
+
+# ── Stops ────────────────────────────────────────────────────────────────────
+stops:
+  atr_period: 14
+  stop_loss_atr: 2.0        # SL = entry ± 2× ATR
+  take_profit_atr: 3.0      # TP = entry ± 3× ATR
+
+# ── Strategy ─────────────────────────────────────────────────────────────────
+strategy:
+  min_signals: 2            # minimum agreeing signals required to enter
+
+# ── Coinbase sandbox ─────────────────────────────────────────────────────────
+coinbase:
+  sandbox_url: "https://api-sandbox.coinbase.com"
+  fill_timeout: 15           # seconds to wait for a market order to fill
+
+# ── Backtesting ──────────────────────────────────────────────────────────────
+backtest:
+  months: 12
+  report_dir: "reports"
