@@ -1,0 +1,6 @@
+@echo off
+echo Starting SOL Bot paper trader...
+start "SOL Bot" cmd /k ".venv\Scripts\python.exe main.py --mode paper"
+timeout /t 2 /nobreak >nul
+echo Starting dashboard...
+.venv\Scripts\python.exe dashboard.py
