@@ -29,7 +29,8 @@ class AgencyConfig:
 
     # API keys
     groq_api_key: str = os.getenv("GROQ_API_KEY", "")  # Free at groq.com — no credit card needed
-    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")  # Optional/legacy — Groq replaces this
+    gemini_api_key: str = os.getenv("GEMINI_API_KEY", "")  # Free at aistudio.google.com
+    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")  # Optional/legacy
     google_places_api_key: str = os.getenv("GOOGLE_PLACES_API_KEY", "")  # No longer needed — Yelp scraping is free
     sendgrid_api_key: str = os.getenv("SENDGRID_API_KEY", "")
     stripe_secret_key: str = os.getenv("STRIPE_SECRET_KEY", "")
