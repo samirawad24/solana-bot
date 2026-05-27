@@ -1,4 +1,4 @@
-"""Zero-cost AI — tries Groq first, falls back to Google Gemini."""
+"""Zero-cost AI — tries Groq, Gemini, then Mistral in order."""
 import logging
 import requests
 from typing import Optional
@@ -12,24 +12,26 @@ GROQ_MODEL = "llama-3.3-70b-versatile"
 
 GEMINI_MODEL = "gemini-2.0-flash-lite"
 
+MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
+MISTRAL_MODEL = "mistral-small-latest"
 
-def _call_groq(messages: list, max_tokens: int) -> Optional[str]:
+
+def _openai_style(url: str, api_key: str, model: str, messages: list, max_tokens: int) -> Optional[str]:
     try:
         r = requests.post(
-            GROQ_URL,
-            headers={"Authorization": f"Bearer {cfg.groq_api_key}", "Content-Type": "application/json"},
-            json={"model": GROQ_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.7},
+            url,
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json={"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": 0.7},
             timeout=30,
         )
         r.raise_for_status()
         return r.json()["choices"][0]["message"]["content"]
     except Exception as e:
-        log.warning("Groq call failed: %s", e)
+        log.warning("AI call failed (%s): %s", url.split("/")[2], e)
         return None
 
 
 def _call_gemini(messages: list, max_tokens: int) -> Optional[str]:
-    # Convert OpenAI-style messages to Gemini format
     contents = []
     system_text = ""
     for m in messages:
@@ -46,10 +48,7 @@ def _call_gemini(messages: list, max_tokens: int) -> Optional[str]:
     try:
         r = requests.post(
             url,
-            json={
-                "contents": contents,
-                "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7},
-            },
+            json={"contents": contents, "generationConfig": {"maxOutputTokens": max_tokens, "temperature": 0.7}},
             timeout=30,
         )
         r.raise_for_status()
@@ -64,18 +63,23 @@ def chat(
     max_tokens: int = 500,
     system: Optional[str] = None,
 ) -> Optional[str]:
-    """Call Groq or Gemini; return text or None if both unavailable."""
+    """Call Groq → Gemini → Mistral in order; return text or None."""
     messages = []
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
 
     if cfg.groq_api_key:
-        result = _call_groq(messages, max_tokens)
+        result = _openai_style(GROQ_URL, cfg.groq_api_key, GROQ_MODEL, messages, max_tokens)
         if result:
             return result
 
     if cfg.gemini_api_key:
-        return _call_gemini(messages, max_tokens)
+        result = _call_gemini(messages, max_tokens)
+        if result:
+            return result
+
+    if cfg.mistral_api_key:
+        return _openai_style(MISTRAL_URL, cfg.mistral_api_key, MISTRAL_MODEL, messages, max_tokens)
 
     return None
