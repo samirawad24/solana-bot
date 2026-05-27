@@ -4,7 +4,10 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from typing import List
 
+from dotenv import load_dotenv
+
 ROOT = Path(__file__).parent
+load_dotenv(ROOT / ".env")
 
 
 @dataclass
