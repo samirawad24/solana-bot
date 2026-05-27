@@ -1,20 +1,15 @@
 """
 Review Agent — generates automated review-request SMS + email copy
 and a 3-touch review sequence for clients.
-This is the highest-ROI automation for local businesses.
 """
 import logging
 from typing import Dict, List
-import anthropic
 
+from agency.ai.groq_client import chat
 from agency.config import cfg
 from agency.db.models import log_service_delivery
 
 log = logging.getLogger(__name__)
-
-
-def _client():
-    return anthropic.Anthropic(api_key=cfg.anthropic_api_key)
 
 
 def generate_review_sequence(client: Dict) -> List[Dict]:
@@ -27,25 +22,6 @@ def generate_review_sequence(client: Dict) -> List[Dict]:
         {"day": 3, "channel": "Email", "tone": "gentle reminder, mention it only takes 60 seconds"},
         {"day": 7, "channel": "SMS", "tone": "final ask, personal and low-pressure"},
     ]
-
-    if not cfg.anthropic_api_key:
-        return [
-            {
-                "day": t["day"],
-                "channel": t["channel"],
-                "message": (
-                    f"[Day {t['day']} {t['channel']}] Hi {{first_name}}! Thanks for visiting "
-                    f"{business}. If you have a moment, we'd love a Google review: {{review_link}} "
-                    f"— it means the world to us! 🙏"
-                    if t["channel"] == "SMS"
-                    else f"[Day {t['day']} Email] Subject: Your experience at {business}\n\n"
-                    f"Hi {{first_name}},\n\nWe hope your visit was everything you expected! "
-                    f"If you have 60 seconds, a quick Google review helps our small business enormously.\n\n"
-                    f"{{review_link}}\n\nThank you!"
-                ),
-            }
-            for t in touches
-        ]
 
     sequence = []
     for touch in touches:
@@ -67,15 +43,27 @@ Tone: {touch['tone']}
 - Warm, human sign-off
 Return SUBJECT: then BODY: on separate lines."""
 
-        msg = _client().messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=250,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        text = chat(prompt, max_tokens=250)
+        if text:
+            message = text.strip()
+        else:
+            if touch["channel"] == "SMS":
+                message = (
+                    f"Hi {{first_name}}! Thanks for visiting {business}. "
+                    f"If you have a moment, we'd love a Google review: {{review_link}} — means the world to us!"
+                )
+            else:
+                message = (
+                    f"Subject: Your experience at {business}\n\n"
+                    f"Hi {{first_name}},\n\nWe hope your visit was everything you expected! "
+                    f"If you have 60 seconds, a quick Google review helps our small business enormously.\n\n"
+                    f"{{review_link}}\n\nThank you!"
+                )
+
         sequence.append({
             "day": touch["day"],
             "channel": touch["channel"],
-            "message": msg.content[0].text.strip(),
+            "message": message,
         })
 
     return sequence
@@ -92,12 +80,6 @@ def generate_win_back_campaign(client: Dict) -> List[Dict]:
         "Final gentle nudge with urgency (offer expires in 48hrs)",
     ]
 
-    if not cfg.anthropic_api_key:
-        return [
-            {"email_num": i + 1, "subject": f"Win-back email {i+1}", "body": f"[Demo] {p}"}
-            for i, p in enumerate(prompts)
-        ]
-
     result = []
     for i, p in enumerate(prompts):
         prompt = f"""Write win-back email #{i+1} for {business} ({niche.replace('_',' ')}).
@@ -106,15 +88,16 @@ Angle: {p}
 - Use {{first_name}} placeholder
 - Natural sign-off
 Return SUBJECT: then BODY:"""
-        msg = _client().messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=200,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        text = msg.content[0].text.strip()
-        lines = text.split("\n", 2)
-        subject = lines[0].replace("SUBJECT:", "").strip()
-        body = "\n".join(lines[2:]).strip() if len(lines) > 2 else text
+
+        text = chat(prompt, max_tokens=200)
+        if text:
+            lines = text.strip().split("\n", 2)
+            subject = lines[0].replace("SUBJECT:", "").strip()
+            body = "\n".join(lines[2:]).strip() if len(lines) > 2 else text
+        else:
+            subject = f"Win-back email {i+1}"
+            body = f"[{business} — {p}]\n\n[Add GROQ_API_KEY for real copy]"
+
         result.append({"email_num": i + 1, "subject": subject, "body": body})
 
     return result

@@ -1,22 +1,17 @@
 """
 Automated monthly client report generator.
-Pulls service delivery data and wraps it in a professional summary
-using Claude, then emails it to the client.
+Pulls service delivery data and wraps it in a professional summary using Groq AI.
 """
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List
-import anthropic
 
+from agency.ai.groq_client import chat
 from agency.config import cfg
 from agency.db.models import get_clients, get_conn, update_lead
 from agency.outreach.email_sender import send_email
 
 log = logging.getLogger(__name__)
-
-
-def _client():
-    return anthropic.Anthropic(api_key=cfg.anthropic_api_key)
 
 
 def _get_deliveries(client_id: int) -> List[Dict]:
@@ -71,12 +66,17 @@ Write the report with:
 Tone: professional, confident, results-focused. Use plain language, no jargon.
 Under 350 words total."""
 
-    if not cfg.anthropic_api_key:
-        return f"""MONTHLY REPORT — {business.upper()}
-{cfg.agency_name} | {datetime.utcnow().strftime('%B %Y')}
-{'='*60}
+    result = chat(prompt, max_tokens=700)
+    header = (
+        f"MONTHLY REPORT — {business.upper()}\n"
+        f"{cfg.agency_name} | {datetime.utcnow().strftime('%B %Y')}\n"
+        f"{'='*60}\n\n"
+    )
 
-EXECUTIVE SUMMARY
+    if result:
+        return header + result
+
+    return header + f"""EXECUTIVE SUMMARY
 Your automation systems are running and delivering consistent value. Here's a summary of this month's activity.
 
 WHAT WE DID THIS MONTH
@@ -92,18 +92,6 @@ QUICK WIN TIP
 Ask your next 5 customers directly: "How did you hear about us?" — the answers will sharpen your marketing fast.
 
 — {cfg.owner_name}, {cfg.agency_name}"""
-
-    msg = _client().messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=700,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    header = (
-        f"MONTHLY REPORT — {business.upper()}\n"
-        f"{cfg.agency_name} | {datetime.utcnow().strftime('%B %Y')}\n"
-        f"{'='*60}\n\n"
-    )
-    return header + msg.content[0].text
 
 
 def send_monthly_reports():
@@ -136,7 +124,6 @@ def send_monthly_reports():
 
         ok = send_email(client["email"], subject, body)
         if ok:
-            # Schedule next report
             next_dt = (now + timedelta(days=30)).isoformat()
             conn = get_conn()
             c = conn.cursor()

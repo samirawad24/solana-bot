@@ -31,7 +31,7 @@ with st.sidebar:
 
     page = st.radio(
         "Navigate",
-        ["Revenue", "Leads", "Clients", "Opportunities", "Onboard Client", "Services"],
+        ["Revenue", "Leads", "Clients", "Opportunities", "Freelance", "Onboard Client", "Services"],
         index=0,
     )
     st.divider()
@@ -40,10 +40,14 @@ with st.sidebar:
         with st.spinner("Running all automation tasks..."):
             from agency.leads.finder import run_lead_discovery
             from agency.leads.scorer import qualify_leads
+            from agency.leads.email_finder import enrich_lead_emails
             from agency.niches.researcher import run_niche_research
+            from agency.freelance.upwork_monitor import run_job_monitor
             run_lead_discovery()
             qualify_leads()
+            enrich_lead_emails(limit=30)
             run_niche_research()
+            run_job_monitor()
         st.success("Tasks complete!")
 
     if st.button("Send Outreach Now", use_container_width=True):
@@ -51,6 +55,15 @@ with st.sidebar:
             from agency.outreach.email_sender import run_outreach
             n = run_outreach()
         st.success(f"{n} emails sent!")
+
+    st.divider()
+    st.caption("Zero-Cost Stack Status")
+    groq_ok = bool(cfg.groq_api_key)
+    smtp_ok = bool(cfg.smtp_user)
+    st.write(f"{'✅' if groq_ok else '❌'} Groq AI {'(active)' if groq_ok else '(add GROQ_API_KEY)'}")
+    st.write("✅ Yelp Lead Discovery")
+    st.write("✅ Email Finding")
+    st.write(f"{'✅' if smtp_ok else '⏭️'} Email Sending {'(active)' if smtp_ok else '(optional)'}")
 
 
 # ── Revenue Page ──────────────────────────────────────────────────────────────
@@ -223,6 +236,54 @@ elif page == "Opportunities":
             conn2.execute("UPDATE niche_opportunities SET acted_on=1 WHERE id=?", (sel_id,))
             conn2.commit()
             conn2.close()
+
+
+# ── Freelance Page ────────────────────────────────────────────────────────────
+elif page == "Freelance":
+    st.title("Freelance Opportunities")
+    st.caption("Upwork jobs with AI-generated proposals + Fiverr gig creator")
+
+    tab1, tab2 = st.tabs(["Upwork Proposals", "Fiverr Gigs"])
+
+    with tab1:
+        if st.button("Scan Upwork Jobs Now", use_container_width=True):
+            with st.spinner("Scanning Upwork and generating proposals..."):
+                from agency.freelance.upwork_monitor import run_job_monitor
+                opps = run_job_monitor()
+            st.success(f"Found {len(opps)} opportunities!")
+
+        from agency.freelance.upwork_monitor import get_proposals_for_review
+        proposals = get_proposals_for_review(limit=10)
+        if not proposals:
+            st.info("No proposals yet — click 'Scan Upwork Jobs Now' or 'Run All Tasks Now'.")
+        else:
+            for p in proposals:
+                score_color = "green" if p["score"] >= 70 else "orange"
+                with st.expander(f"[{p['score']}/100] {p['title'][:80]}"):
+                    st.write(f"**URL:** {p.get('url', 'N/A')}")
+                    st.text_area(
+                        "Copy-paste proposal",
+                        p.get("proposal", "No proposal generated"),
+                        height=200,
+                        key=f"prop_{hash(p['title'])}",
+                    )
+
+    with tab2:
+        st.write("Generate copy-paste Fiverr gig listings for all 5 niches.")
+        if st.button("Generate All Fiverr Gigs", use_container_width=True):
+            with st.spinner("Generating gigs with Groq AI..."):
+                from agency.freelance.fiverr_gig_generator import generate_all_gigs
+                generate_all_gigs()
+            st.success("Gigs saved to data/fiverr_gigs/ — check that folder!")
+
+        from pathlib import Path
+        gig_dir = Path("data/fiverr_gigs")
+        if gig_dir.exists():
+            gig_files = list(gig_dir.glob("*.txt"))
+            if gig_files:
+                sel_gig = st.selectbox("Preview gig", [f.stem for f in gig_files])
+                gig_text = (gig_dir / f"{sel_gig}.txt").read_text()
+                st.text_area("Gig content", gig_text, height=400)
 
 
 # ── Onboard Client Page ───────────────────────────────────────────────────────

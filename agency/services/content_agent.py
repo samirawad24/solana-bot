@@ -4,16 +4,12 @@ review-request copy for clients. Pro plan deliverable.
 """
 import logging
 from typing import Dict, List
-import anthropic
 
+from agency.ai.groq_client import chat
 from agency.config import cfg, NICHE_MAP
 from agency.db.models import log_service_delivery
 
 log = logging.getLogger(__name__)
-
-
-def _client():
-    return anthropic.Anthropic(api_key=cfg.anthropic_api_key)
 
 
 def generate_seo_blog_post(client: Dict) -> str:
@@ -38,12 +34,15 @@ Requirements:
 
 Output: the blog post only, no commentary."""
 
-    if not cfg.anthropic_api_key:
-        return f"""# Top 5 Questions to Ask When Choosing a {niche.replace('_',' ').title()} in {city}
+    result = chat(prompt, max_tokens=1200)
+    if result:
+        return result
+
+    return f"""# Top 5 Questions to Ask When Choosing a {niche.replace('_',' ').title()} in {city}
 
 Finding the right {niche.replace('_',' ')} in {city} can feel overwhelming...
 
-[Demo mode — connect ANTHROPIC_API_KEY to generate real SEO content]
+[Add GROQ_API_KEY to generate real SEO content]
 
 ## What Services Do They Offer?
 ...
@@ -56,13 +55,6 @@ Finding the right {niche.replace('_',' ')} in {city} can feel overwhelming...
 
 **Ready to experience the difference?** Book your appointment with {business} today.
 """
-
-    msg = _client().messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=1200,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return msg.content[0].text
 
 
 def generate_email_drip_sequence(client: Dict, num_emails: int = 6) -> List[Dict]:
@@ -79,16 +71,6 @@ def generate_email_drip_sequence(client: Dict, num_emails: int = 6) -> List[Dict
         "Re-engagement — ask for a review / referral",
     ]
 
-    if not cfg.anthropic_api_key:
-        return [
-            {
-                "email_num": i + 1,
-                "subject": f"Email {i+1}: {brief}",
-                "body": f"[Demo] {business} email sequence — {brief}\n\n[Connect API key for real copy]",
-            }
-            for i, brief in enumerate(sequence_brief[:num_emails])
-        ]
-
     emails = []
     for i, brief in enumerate(sequence_brief[:num_emails]):
         prompt = f"""Write email #{i+1} of a {num_emails}-email drip sequence for {business} ({niche.replace('_',' ')}).
@@ -98,15 +80,15 @@ Length: 100-150 words
 Sign off with first name only.
 Return SUBJECT: and BODY: on separate lines."""
 
-        msg = _client().messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=300,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        text = msg.content[0].text.strip()
-        lines = text.split("\n", 2)
-        subject = lines[0].replace("SUBJECT:", "").strip()
-        body = "\n".join(lines[2:]).strip() if len(lines) > 2 else text
+        text = chat(prompt, max_tokens=300)
+        if text:
+            lines = text.strip().split("\n", 2)
+            subject = lines[0].replace("SUBJECT:", "").strip()
+            body = "\n".join(lines[2:]).strip() if len(lines) > 2 else text
+        else:
+            subject = f"Email {i+1}: {brief}"
+            body = f"[{business} — {brief}]\n\n[Add GROQ_API_KEY to generate real copy]"
+
         emails.append({"email_num": i + 1, "subject": subject, "body": body})
 
     return emails

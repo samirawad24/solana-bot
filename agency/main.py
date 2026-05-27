@@ -2,10 +2,12 @@
 AI Agency Orchestrator — the always-on engine that runs all automation tasks.
 
 Schedule (all UTC):
-  07:00 — Lead discovery (Google Places)
+  07:00 — Lead discovery (Yelp scraping, free)
   07:30 — Lead scoring & qualification
+  08:00 — Email enrichment (scrape business websites for contact emails)
   09:00 — Outreach (initial emails + follow-ups)
-  10:00 — Niche opportunity research (Upwork)
+  10:00 — Niche opportunity research (Upwork RSS)
+  10:30 — Job monitor (generate full Upwork proposals via Groq)
   11:00 — Service delivery for new clients
   16:00 — Monthly report dispatch
   Every hour — Revenue health check
@@ -73,6 +75,16 @@ def task_outreach():
         log.error("Outreach failed: %s", e, exc_info=True)
 
 
+def task_email_enrichment():
+    log.info("=== TASK: Email Enrichment ===")
+    try:
+        from agency.leads.email_finder import enrich_lead_emails
+        n = enrich_lead_emails(limit=30)
+        log.info("Email enrichment: %d emails found", n)
+    except Exception as e:
+        log.error("Email enrichment failed: %s", e, exc_info=True)
+
+
 def task_niche_research():
     log.info("=== TASK: Niche Research ===")
     try:
@@ -81,6 +93,16 @@ def task_niche_research():
         log.info("Niche research complete — %d opportunities found", len(opps))
     except Exception as e:
         log.error("Niche research failed: %s", e, exc_info=True)
+
+
+def task_job_monitor():
+    log.info("=== TASK: Job Monitor ===")
+    try:
+        from agency.freelance.upwork_monitor import run_job_monitor
+        opps = run_job_monitor()
+        log.info("Job monitor: %d opportunities with proposals", sum(1 for o in opps if o.get("proposal")))
+    except Exception as e:
+        log.error("Job monitor failed: %s", e, exc_info=True)
 
 
 def task_service_delivery():
@@ -131,8 +153,10 @@ def task_revenue_check():
 def setup_schedule():
     schedule.every().day.at("07:00").do(task_lead_discovery)
     schedule.every().day.at("07:30").do(task_qualify_leads)
+    schedule.every().day.at("08:00").do(task_email_enrichment)
     schedule.every().day.at("09:00").do(task_outreach)
     schedule.every().day.at("10:00").do(task_niche_research)
+    schedule.every().day.at("10:30").do(task_job_monitor)
     schedule.every().day.at("11:00").do(task_service_delivery)
     schedule.every().day.at("16:00").do(task_send_reports)
     schedule.every(1).hours.do(task_revenue_check)
@@ -144,7 +168,9 @@ def run_all_now():
     log.info("Running all tasks immediately (test/setup mode)")
     task_lead_discovery()
     task_qualify_leads()
+    task_email_enrichment()
     task_niche_research()
+    task_job_monitor()
     task_service_delivery()
     task_send_reports()
     task_revenue_check()

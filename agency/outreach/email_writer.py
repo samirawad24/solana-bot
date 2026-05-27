@@ -1,15 +1,11 @@
-"""Generate hyper-personalized cold email copy with Claude."""
+"""Generate hyper-personalized cold email copy with Groq AI (free)."""
 import logging
 from typing import Dict, Tuple
-import anthropic
 
+from agency.ai.groq_client import chat
 from agency.config import cfg, NICHE_MAP, PACKAGES
 
 log = logging.getLogger(__name__)
-
-
-def _client() -> anthropic.Anthropic:
-    return anthropic.Anthropic(api_key=cfg.anthropic_api_key)
 
 
 def _niche_context(niche_name: str) -> str:
@@ -38,7 +34,7 @@ Target business:
 - Name: {business}
 - Type: {niche_name.replace('_', ' ')}
 - City: {city}
-- Google rating: {rating} ({reviews} reviews)
+- Rating: {rating} ({reviews} reviews)
 
 {context}
 
@@ -60,29 +56,25 @@ SUBJECT: <subject line>
 BODY:
 <email body>"""
 
-    if not cfg.anthropic_api_key:
-        subject = f"Quick question about {business}'s booking system"
-        body = (
-            f"Hi,\n\nI noticed {business} has {reviews} Google reviews — "
-            f"strong presence in {city}.\n\n"
-            f"Most {niche_name.replace('_', ' ')} owners I talk to lose 20-30% of potential "
-            f"bookings simply because there's no one answering after hours.\n\n"
-            f"I help businesses like yours set up an AI system that handles bookings, "
-            f"follow-ups, and review requests automatically — no tech skills needed.\n\n"
-            f"Would a 15-minute call this week make sense? Happy to show you exactly "
-            f"how it works for free.\n\n{cfg.owner_name}"
-        )
+    text = chat(prompt, max_tokens=400)
+    if text:
+        lines = text.strip().split("\n", 2)
+        subject = lines[0].replace("SUBJECT:", "").strip() if lines else "Quick question"
+        body = "\n".join(lines[2:]).strip() if len(lines) > 2 else text
         return subject, body
 
-    msg = _client().messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=400,
-        messages=[{"role": "user", "content": prompt}],
+    # Fallback template
+    subject = f"Quick question about {business}'s booking system"
+    body = (
+        f"Hi,\n\nI noticed {business} has {reviews} Google reviews — "
+        f"strong presence in {city}.\n\n"
+        f"Most {niche_name.replace('_', ' ')} owners I talk to lose 20-30% of potential "
+        f"bookings simply because there's no one answering after hours.\n\n"
+        f"I help businesses like yours set up an AI system that handles bookings, "
+        f"follow-ups, and review requests automatically — no tech skills needed.\n\n"
+        f"Would a 15-minute call this week make sense? Happy to show you exactly "
+        f"how it works for free.\n\n{cfg.owner_name}"
     )
-    text = msg.content[0].text
-    lines = text.strip().split("\n", 2)
-    subject = lines[0].replace("SUBJECT:", "").strip() if lines else "Quick question"
-    body = "\n".join(lines[2:]).strip() if len(lines) > 2 else text
     return subject, body
 
 
@@ -114,23 +106,19 @@ SUBJECT: <subject>
 BODY:
 <body>"""
 
-    if not cfg.anthropic_api_key:
-        subject = f"Re: {business} automation"
-        body = (
-            f"Hi,\n\nJust wanted to resurface this — I know things get busy.\n\n"
-            f"If automating your booking follow-ups isn't a priority right now, totally understand. "
-            f"If it is, I can show you the whole system in 15 minutes.\n\n"
-            f"Worth a look?\n\n{cfg.owner_name}"
-        )
+    text = chat(prompt, max_tokens=200)
+    if text:
+        lines = text.strip().split("\n", 2)
+        subject = lines[0].replace("SUBJECT:", "").strip()
+        body = "\n".join(lines[2:]).strip() if len(lines) > 2 else text
         return subject, body
 
-    msg = _client().messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=200,
-        messages=[{"role": "user", "content": prompt}],
+    # Fallback template
+    subject = f"Re: {business} automation"
+    body = (
+        f"Hi,\n\nJust wanted to resurface this — I know things get busy.\n\n"
+        f"If automating your booking follow-ups isn't a priority right now, totally understand. "
+        f"If it is, I can show you the whole system in 15 minutes.\n\n"
+        f"Worth a look?\n\n{cfg.owner_name}"
     )
-    text = msg.content[0].text.strip()
-    lines = text.split("\n", 2)
-    subject = lines[0].replace("SUBJECT:", "").strip()
-    body = "\n".join(lines[2:]).strip() if len(lines) > 2 else text
     return subject, body

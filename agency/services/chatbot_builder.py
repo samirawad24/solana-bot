@@ -1,28 +1,19 @@
 """
 AI Chatbot Builder — generates a ready-to-deploy chatbot configuration
-and embeddable script for a client's website using Botpress / Tidio conventions.
-Delivery is fully automated: Claude generates the Q&A, booking flow, and
-handoff script, which is emailed to the client.
+and embeddable script for a client's website.
 """
 import logging
 from typing import Dict
-import anthropic
 
+from agency.ai.groq_client import chat
 from agency.config import cfg, NICHE_MAP, PACKAGES
 from agency.db.models import log_service_delivery
 
 log = logging.getLogger(__name__)
 
 
-def _client():
-    return anthropic.Anthropic(api_key=cfg.anthropic_api_key)
-
-
 def generate_chatbot_config(client: Dict) -> Dict:
-    """
-    Build a complete chatbot configuration JSON + embed snippet.
-    Returns dict with keys: faq_pairs, booking_flow, handoff_message, embed_snippet.
-    """
+    """Build a complete chatbot configuration. Returns dict with config + embed snippet."""
     niche_name = client.get("niche", "local business")
     business_name = client.get("business_name", "Your Business")
     niche = NICHE_MAP.get(niche_name)
@@ -50,15 +41,9 @@ Generate:
 
 Keep all messages warm, concise, professional. Use the business name {business_name}."""
 
-    if not cfg.anthropic_api_key:
+    raw = chat(prompt, max_tokens=2000)
+    if not raw:
         return _demo_config(business_name, niche_name)
-
-    msg = _client().messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=2000,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    raw = msg.content[0].text
 
     embed_snippet = f"""<!-- {business_name} AI Chat Widget -->
 <script>

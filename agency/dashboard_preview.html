@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoFlow AI Agency — Dashboard Preview</title>
+<style>
+  /* ── Reset & base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0e1117; color: #fafafa; min-height: 100vh; }
+
+  /* ── Tab radio inputs (hidden) ── */
+  input[type="radio"] { display: none; }
+
+  /* ── Sidebar / nav ── */
+  .nav { display: flex; gap: 6px; flex-wrap: wrap; padding: 12px 16px; background: #1a1d27; border-bottom: 1px solid #2d3147; position: sticky; top: 0; z-index: 10; }
+  .nav label { cursor: pointer; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #aaa; background: #262940; border: 1px solid transparent; min-height: 44px; display: flex; align-items: center; transition: all .15s; user-select: none; }
+  .nav label:active { opacity: .7; }
+
+  /* Active tab highlight — each radio:checked makes its label active */
+  #tab-revenue:checked ~ .nav label[for="tab-revenue"],
+  #tab-leads:checked ~ .nav label[for="tab-leads"],
+  #tab-clients:checked ~ .nav label[for="tab-clients"],
+  #tab-opportunities:checked ~ .nav label[for="tab-opportunities"],
+  #tab-freelance:checked ~ .nav label[for="tab-freelance"],
+  #tab-onboard:checked ~ .nav label[for="tab-onboard"],
+  #tab-services:checked ~ .nav label[for="tab-services"] {
+    background: #5c6bc0; color: #fff; border-color: #7986cb;
+  }
+
+  /* ── Page panels — all hidden by default ── */
+  .page { display: none; padding: 20px 16px; max-width: 900px; margin: 0 auto; }
+
+  /* Show the selected page */
+  #tab-revenue:checked ~ .pages .revenue,
+  #tab-leads:checked ~ .pages .leads,
+  #tab-clients:checked ~ .pages .clients,
+  #tab-opportunities:checked ~ .pages .opportunities,
+  #tab-freelance:checked ~ .pages .freelance,
+  #tab-onboard:checked ~ .pages .onboard,
+  #tab-services:checked ~ .pages .services { display: block; }
+
+  /* ── Header bar ── */
+  .topbar { background: #1a1d27; padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #2d3147; }
+  .topbar h1 { font-size: 18px; font-weight: 700; color: #fff; }
+  .topbar small { font-size: 11px; color: #888; }
+
+  /* ── Cards / metrics ── */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .metric { background: #1a1d27; border: 1px solid #2d3147; border-radius: 10px; padding: 14px; }
+  .metric .label { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .metric .value { font-size: 22px; font-weight: 700; color: #fff; }
+  .metric .delta { font-size: 11px; color: #4caf50; margin-top: 2px; }
+  .metric .delta.neg { color: #ef5350; }
+
+  /* ── Section titles ── */
+  h2 { font-size: 20px; font-weight: 700; margin: 20px 0 12px; color: #fff; }
+  h3 { font-size: 15px; font-weight: 600; margin: 16px 0 8px; color: #ddd; }
+
+  /* ── Status bar ── */
+  .status-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .badge { font-size: 12px; padding: 4px 10px; border-radius: 20px; font-weight: 500; }
+  .badge.green { background: #1b5e2066; color: #81c784; border: 1px solid #388e3c; }
+  .badge.red { background: #b71c1c44; color: #ef9a9a; border: 1px solid #c62828; }
+  .badge.gray { background: #37474f55; color: #90a4ae; border: 1px solid #546e7a; }
+
+  /* ── Progress bar ── */
+  .progress-wrap { background: #2d3147; border-radius: 6px; height: 12px; margin: 8px 0 4px; overflow: hidden; }
+  .progress-bar { height: 100%; background: linear-gradient(90deg, #5c6bc0, #7986cb); border-radius: 6px; transition: width .5s; }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid #2d3147; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 480px; }
+  th { background: #1a1d27; color: #888; font-weight: 600; padding: 10px 12px; text-align: left; white-space: nowrap; }
+  td { padding: 10px 12px; border-top: 1px solid #2d3147; vertical-align: middle; }
+  tr:hover td { background: #1e2235; }
+
+  /* ── Pill / status tags ── */
+  .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+  .pill.qualified { background: #1565c044; color: #90caf9; }
+  .pill.new { background: #37474f55; color: #b0bec5; }
+  .pill.contacted { background: #4a148c44; color: #ce93d8; }
+  .pill.active { background: #1b5e2066; color: #81c784; }
+  .pill.onboarding { background: #e65100aa; color: #ffcc80; }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 18px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; min-height: 44px; user-select: none; }
+  .btn-primary { background: #5c6bc0; color: #fff; }
+  .btn-secondary { background: #2d3147; color: #ccc; border: 1px solid #3d4160; }
+  .btn-full { width: 100%; margin-bottom: 10px; }
+
+  /* ── Form fields ── */
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 12px; color: #888; margin-bottom: 4px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; background: #1a1d27; border: 1px solid #2d3147; border-radius: 8px;
+    color: #fff; padding: 10px 12px; font-size: 14px; outline: none;
+  }
+  .form-group textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+
+  /* ── Info / callout boxes ── */
+  .callout { background: #1a237e33; border: 1px solid #3949ab; border-radius: 8px; padding: 14px 16px; font-size: 13px; color: #c5cae9; margin-bottom: 16px; }
+  .callout.success { background: #1b5e2033; border-color: #388e3c; color: #c8e6c9; }
+  .callout.warn { background: #e65100330; border-color: #f57c00; color: #ffe0b2; }
+
+  /* ── Proposal cards ── */
+  .proposal-card { background: #1a1d27; border: 1px solid #2d3147; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .proposal-card .score { font-size: 12px; font-weight: 700; color: #81c784; float: right; }
+  .proposal-card h4 { font-size: 14px; color: #ddd; margin-bottom: 8px; padding-right: 50px; }
+  .proposal-card p { font-size: 13px; color: #aaa; line-height: 1.5; }
+
+  /* ── Chart mockup ── */
+  .chart { background: #1a1d27; border: 1px solid #2d3147; border-radius: 10px; padding: 16px; margin-bottom: 16px; height: 120px; display: flex; align-items: flex-end; gap: 8px; }
+  .bar { flex: 1; background: linear-gradient(180deg, #7986cb, #5c6bc0); border-radius: 4px 4px 0 0; opacity: .85; }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid #2d3147; margin: 20px 0; }
+
+  /* ── Footer ── */
+  footer { text-align: center; font-size: 11px; color: #555; padding: 20px; }
+
+  @media (max-width: 480px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    h2 { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hidden radio inputs control which tab is visible -->
+<input type="radio" name="tab" id="tab-revenue" checked>
+<input type="radio" name="tab" id="tab-leads">
+<input type="radio" name="tab" id="tab-clients">
+<input type="radio" name="tab" id="tab-opportunities">
+<input type="radio" name="tab" id="tab-freelance">
+<input type="radio" name="tab" id="tab-onboard">
+<input type="radio" name="tab" id="tab-services">
+
+<!-- Top bar -->
+<div class="topbar">
+  <span style="font-size:24px">🤖</span>
+  <div>
+    <h1>AutoFlow AI Agency</h1>
+    <small>Hands-free AI automation — $0/month to run</small>
+  </div>
+</div>
+
+<!-- Navigation -->
+<nav class="nav">
+  <label for="tab-revenue">💰 Revenue</label>
+  <label for="tab-leads">🎯 Leads</label>
+  <label for="tab-clients">👥 Clients</label>
+  <label for="tab-opportunities">🔍 Opps</label>
+  <label for="tab-freelance">💼 Freelance</label>
+  <label for="tab-onboard">➕ Onboard</label>
+  <label for="tab-services">⚙️ Services</label>
+</nav>
+
+<!-- All pages -->
+<div class="pages">
+
+  <!-- ── REVENUE ── -->
+  <div class="page revenue">
+    <h2>Revenue Dashboard</h2>
+    <div class="status-bar">
+      <span class="badge green">✅ Groq AI — Active</span>
+      <span class="badge green">✅ Yelp Scraper</span>
+      <span class="badge green">✅ Email Finder</span>
+      <span class="badge gray">⏭️ Email Sending — Optional</span>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="label">Monthly Recurring Revenue</div><div class="value">$1,141</div><div class="delta">+$263/wk equiv</div></div>
+      <div class="metric"><div class="label">This Week</div><div class="value">$263</div><div class="delta">26% of $1,000 target</div></div>
+      <div class="metric"><div class="label">All-Time Revenue</div><div class="value">$4,880</div></div>
+      <div class="metric"><div class="label">Annual Run Rate</div><div class="value">$13,692</div></div>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="label">Active Clients</div><div class="value">3</div></div>
+      <div class="metric"><div class="label">In Pipeline</div><div class="value">1</div></div>
+      <div class="metric"><div class="label">Total Leads</div><div class="value">47</div></div>
+    </div>
+    <h3>Weekly Revenue — Last 8 Weeks</h3>
+    <div class="chart">
+      <div class="bar" style="height:20%"></div>
+      <div class="bar" style="height:30%"></div>
+      <div class="bar" style="height:25%"></div>
+      <div class="bar" style="height:45%"></div>
+      <div class="bar" style="height:40%"></div>
+      <div class="bar" style="height:60%"></div>
+      <div class="bar" style="height:75%"></div>
+      <div class="bar" style="height:85%"></div>
+    </div>
+    <h3>Path to $1,000/week</h3>
+    <div class="progress-wrap"><div class="progress-bar" style="width:26%"></div></div>
+    <p style="font-size:12px;color:#888;">$263 / $1,000 per week — ~3 more clients needed</p>
+    <hr>
+    <h3>Log Manual Revenue</h3>
+    <div class="form-group"><label>Amount ($)</label><input type="number" placeholder="0.00"></div>
+    <div class="form-group"><label>Type</label><select><option>setup_fee</option><option>mrr</option><option>bonus</option><option>other</option></select></div>
+    <div class="form-group"><label>Description</label><input type="text" placeholder="e.g. HVAC client setup fee"></div>
+    <button class="btn btn-primary btn-full">Log Revenue</button>
+  </div>
+
+  <!-- ── LEADS ── -->
+  <div class="page leads">
+    <h2>Lead Pipeline</h2>
+    <div class="metrics">
+      <div class="metric"><div class="label">New</div><div class="value">12</div></div>
+      <div class="metric"><div class="label">Qualified</div><div class="value">23</div></div>
+      <div class="metric"><div class="label">Contacted</div><div class="value">8</div></div>
+      <div class="metric"><div class="label">Clients</div><div class="value">3</div></div>
+    </div>
+    <div class="callout">Leads discovered via Yelp scraping — no API key or cost needed.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Business</th><th>Niche</th><th>City</th><th>Rating</th><th>Score</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Elite MedSpa Austin</td><td>medspa</td><td>Austin</td><td>4.7 ⭐</td><td>82</td><td><span class="pill qualified">qualified</span></td></tr>
+          <tr><td>Phoenix AC Pros</td><td>hvac</td><td>Phoenix</td><td>4.3 ⭐</td><td>74</td><td><span class="pill qualified">qualified</span></td></tr>
+          <tr><td>Nashville Dental Care</td><td>dental</td><td>Nashville</td><td>4.8 ⭐</td><td>91</td><td><span class="pill contacted">contacted</span></td></tr>
+          <tr><td>Tampa Realty Group</td><td>real_estate</td><td>Tampa</td><td>4.1 ⭐</td><td>61</td><td><span class="pill new">new</span></td></tr>
+          <tr><td>Glow Aesthetics</td><td>medspa</td><td>Denver</td><td>4.6 ⭐</td><td>87</td><td><span class="pill qualified">qualified</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <hr>
+    <h3>Add Email to Lead</h3>
+    <div class="form-group"><label>Lead ID</label><input type="number" placeholder="1"></div>
+    <div class="form-group"><label>Email Address</label><input type="email" placeholder="owner@business.com"></div>
+    <button class="btn btn-primary">Save Email</button>
+  </div>
+
+  <!-- ── CLIENTS ── -->
+  <div class="page clients">
+    <h2>Active Clients</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Business</th><th>Niche</th><th>Plan</th><th>MRR</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Elite MedSpa Austin</td><td>medspa</td><td>Growth</td><td>$397</td><td><span class="pill active">active</span></td></tr>
+          <tr><td>Phoenix AC Pros</td><td>hvac</td><td>Starter</td><td>$197</td><td><span class="pill active">active</span></td></tr>
+          <tr><td>Nashville Dental Care</td><td>dental</td><td>Pro</td><td>$697</td><td><span class="pill onboarding">onboarding</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>Services Delivered</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Client</th><th>Service</th><th>Delivered</th></tr></thead>
+        <tbody>
+          <tr><td>Elite MedSpa Austin</td><td>AI Chatbot Config</td><td>2026-05-20</td></tr>
+          <tr><td>Elite MedSpa Austin</td><td>Review Sequence</td><td>2026-05-20</td></tr>
+          <tr><td>Phoenix AC Pros</td><td>AI Chatbot Config</td><td>2026-05-18</td></tr>
+          <tr><td>Phoenix AC Pros</td><td>Win-Back Campaign</td><td>2026-05-18</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── OPPORTUNITIES ── -->
+  <div class="page opportunities">
+    <h2>Niche Opportunities</h2>
+    <div class="callout">Opportunities sourced from Upwork RSS feeds — free, no account needed.</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Title</th><th>Score</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr><td>Need chatbot for dental office booking</td><td>80</td><td>Upwork</td></tr>
+          <tr><td>AI automation for HVAC service business</td><td>75</td><td>Upwork</td></tr>
+          <tr><td>Email drip setup for real estate agent</td><td>70</td><td>Upwork</td></tr>
+          <tr><td>Shopify abandoned cart recovery</td><td>65</td><td>Upwork</td></tr>
+          <tr><td>Local business CRM automation</td><td>60</td><td>Upwork</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── FREELANCE ── -->
+  <div class="page freelance">
+    <h2>Freelance Hub</h2>
+
+    <h3>Upwork Proposals</h3>
+    <button class="btn btn-primary btn-full">Scan Upwork Jobs Now</button>
+
+    <div class="proposal-card">
+      <span class="score">80/100</span>
+      <h4>Need chatbot for dental office — automated booking + after-hours FAQ</h4>
+      <p><strong>Proposal (copy-paste ready):</strong></p>
+      <p style="margin-top:8px;font-style:italic;color:#90caf9;">
+        I've built booking chatbots for three dental practices in the past six months — the common thread is the same: front desks overwhelmed with repetitive calls while after-hours leads slip away.<br><br>
+        My approach: a lightweight chatbot layer (Tidio or Botpress, depending on your site) trained on your FAQ, booking flow, and insurance basics. Setup is typically live within 48 hours with zero disruption to your existing website.<br><br>
+        Quick question: do you want patients to book directly through the chat, or just capture their info and call them back? That'll shape the whole flow.<br><br>
+        Happy to jump on a 15-minute call to scope this out.
+      </p>
+    </div>
+
+    <div class="proposal-card">
+      <span class="score">75/100</span>
+      <h4>AI automation for HVAC service business — lead follow-up system</h4>
+      <p style="font-style:italic;color:#90caf9;margin-top:8px;">
+        Peak HVAC season is brutal for missed calls — I've helped two contractors recover 20-30% of leads they were losing simply by adding an after-hours chatbot and a 3-touch follow-up sequence.<br><br>
+        I'd set up: (1) a chatbot that captures service requests when you're unavailable, (2) an automated SMS + email follow-up triggered on new leads, and (3) a seasonal tune-up reminder campaign. All runs without you touching it.<br><br>
+        Are you running a single truck or a crew? That changes how I'd configure the lead routing.<br><br>
+        Happy to jump on a quick call.
+      </p>
+    </div>
+
+    <hr>
+    <h3>Fiverr Gig Generator</h3>
+    <button class="btn btn-secondary btn-full">Generate All Fiverr Gigs</button>
+    <div class="callout success">Gigs saved to data/fiverr_gigs/ — copy-paste each to Fiverr to start getting inbound clients.</div>
+    <div class="form-group"><label>Preview gig</label>
+      <select><option>medspa</option><option>hvac</option><option>dental</option><option>real_estate</option><option>ecommerce</option></select>
+    </div>
+    <div class="form-group">
+      <textarea readonly rows="8">FIVERR GIG — MEDSPA
+==============================
+
+GIG TITLE:
+I will set up an AI chatbot and booking automation for your med spa
+
+DESCRIPTION:
+Transform your med spa's client experience with a 24/7 AI chatbot that handles appointment bookings, answers FAQs, and sends automated review requests...
+
+TAGS: chatbot, med spa automation, booking system, AI assistant, appointment booking
+
+PRICING:
+  Basic:    $480 — Chatbot + FAQ setup
+  Standard: $800 — Full automation suite
+  Premium:  $1,200 — Everything + 30-day optimization</textarea>
+    </div>
+  </div>
+
+  <!-- ── ONBOARD CLIENT ── -->
+  <div class="page onboard">
+    <h2>Onboard New Client</h2>
+    <p style="font-size:13px;color:#888;margin-bottom:16px;">Fill in client details — welcome email, service delivery, and billing log automatically.</p>
+    <div class="form-group"><label>Business Name *</label><input type="text" placeholder="Elite MedSpa Austin"></div>
+    <div class="form-group"><label>Contact Name</label><input type="text" placeholder="Sarah"></div>
+    <div class="form-group"><label>Email *</label><input type="email" placeholder="sarah@elitemedspa.com"></div>
+    <div class="form-group"><label>Phone</label><input type="tel" placeholder="(512) 555-0123"></div>
+    <div class="form-group"><label>Niche</label>
+      <select><option>medspa</option><option>hvac</option><option>dental</option><option>real estate</option><option>ecommerce</option></select>
+    </div>
+    <div class="form-group"><label>City</label><input type="text" placeholder="Austin TX"></div>
+    <div class="form-group"><label>Package</label>
+      <select>
+        <option>Starter — $497 setup + $197/mo</option>
+        <option>Growth — $797 setup + $397/mo</option>
+        <option>Pro — $1,297 setup + $697/mo</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Lead ID (0 if new)</label><input type="number" value="0"></div>
+    <button class="btn btn-primary btn-full">Onboard Client</button>
+  </div>
+
+  <!-- ── SERVICES ── -->
+  <div class="page services">
+    <h2>Service Delivery</h2>
+    <div class="form-group"><label>Select Client</label>
+      <select><option>Elite MedSpa Austin</option><option>Phoenix AC Pros</option><option>Nashville Dental Care</option></select>
+    </div>
+    <button class="btn btn-secondary btn-full">Generate Chatbot Config</button>
+    <button class="btn btn-secondary btn-full">Generate Review Sequences</button>
+    <button class="btn btn-secondary btn-full">Generate SEO Content</button>
+    <button class="btn btn-secondary btn-full">Send Monthly Report Now</button>
+    <hr>
+    <h3>Pricing Packages</h3>
+    <div class="callout">
+      <strong>Starter</strong> — $497 setup + $197/mo<br>
+      • AI chatbot (FAQ + booking) • Review request sequence • Monthly report
+    </div>
+    <div class="callout">
+      <strong>Growth</strong> — $797 setup + $397/mo<br>
+      • AI chatbot + WhatsApp • 6-touch drip sequence • Lead follow-up • Bi-weekly report
+    </div>
+    <div class="callout">
+      <strong>Pro Agency</strong> — $1,297 setup + $697/mo<br>
+      • Everything in Growth • Appointment reminders • Monthly SEO post • Win-back campaign • Weekly KPIs
+    </div>
+  </div>
+
+</div><!-- /pages -->
+
+<footer>AutoFlow AI Agency — Zero-cost AI automation stack | Preview build</footer>
+
+</body>
+</html>

@@ -9,17 +9,13 @@ Automatically:
 import logging
 from datetime import datetime, timedelta
 from typing import Dict
-import anthropic
 
+from agency.ai.groq_client import chat
 from agency.config import cfg, PACKAGES
 from agency.db.models import insert_client, log_revenue, log_service_delivery, update_lead
 from agency.outreach.email_sender import send_email
 
 log = logging.getLogger(__name__)
-
-
-def _client():
-    return anthropic.Anthropic(api_key=cfg.anthropic_api_key)
 
 
 def generate_welcome_email(client: Dict, package: Dict) -> tuple:
@@ -45,9 +41,16 @@ Email should:
 
 Return SUBJECT: then BODY:"""
 
-    if not cfg.anthropic_api_key:
-        subject = f"Welcome to {cfg.agency_name} — You're all set!"
-        body = f"""Hi {contact},
+    text = chat(prompt, max_tokens=400)
+    if text:
+        lines = text.strip().split("\n", 2)
+        subject = lines[0].replace("SUBJECT:", "").strip()
+        body = "\n".join(lines[2:]).strip() if len(lines) > 2 else text
+        return subject, body
+
+    # Fallback
+    subject = f"Welcome to {cfg.agency_name} — You're all set!"
+    body = f"""Hi {contact},
 
 Welcome aboard! We're thrilled to have {business} as a client.
 
@@ -61,17 +64,6 @@ In the meantime, feel free to reply to this email with any questions.
 
 {cfg.owner_name}
 {cfg.agency_name}"""
-        return subject, body
-
-    msg = _client().messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=400,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    text = msg.content[0].text.strip()
-    lines = text.split("\n", 2)
-    subject = lines[0].replace("SUBJECT:", "").strip()
-    body = "\n".join(lines[2:]).strip() if len(lines) > 2 else text
     return subject, body
 
 
@@ -85,10 +77,7 @@ def onboard_client(
     plan: str,
     city: str = "",
 ) -> int:
-    """
-    Full onboarding flow. Returns client_id.
-    Call this from a Stripe webhook handler or manually.
-    """
+    """Full onboarding flow. Returns client_id."""
     package = PACKAGES.get(plan, PACKAGES["starter"])
     mrr = package["mrr"]
     setup_fee = package["setup_fee"]
@@ -111,11 +100,9 @@ def onboard_client(
         "next_report_at": next_report,
     })
 
-    # Log revenue
     log_revenue(client_id, setup_fee, "setup_fee", f"Setup fee — {package['name']}")
     log_revenue(client_id, mrr, "mrr_month1", f"Month 1 retainer — {package['name']}")
 
-    # Update lead status
     if lead_id:
         update_lead(lead_id, {"status": "client"})
 
@@ -129,11 +116,9 @@ def onboard_client(
         "plan": plan,
     }
 
-    # Send welcome email
     subject, body = generate_welcome_email(client, package)
     send_email(email, subject, body)
 
-    # Queue service deliveries
     _queue_services(client, plan)
 
     log.info(
@@ -151,9 +136,6 @@ def _queue_services(client: Dict, plan: str):
 
     deliver_chatbot_service(client)
     deliver_review_service(client)
-
-    if plan in ("growth", "pro"):
-        pass  # drip sequence handled by content_agent on schedule
 
     if plan == "pro":
         deliver_content_service(client)

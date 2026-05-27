@@ -28,11 +28,13 @@ class AgencyConfig:
     website: str = os.getenv("AGENCY_WEBSITE", "https://autoflowagency.com")
 
     # API keys
-    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
-    google_places_api_key: str = os.getenv("GOOGLE_PLACES_API_KEY", "")
+    groq_api_key: str = os.getenv("GROQ_API_KEY", "")  # Free at groq.com — no credit card needed
+    anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")  # Optional/legacy — Groq replaces this
+    google_places_api_key: str = os.getenv("GOOGLE_PLACES_API_KEY", "")  # No longer needed — Yelp scraping is free
     sendgrid_api_key: str = os.getenv("SENDGRID_API_KEY", "")
     stripe_secret_key: str = os.getenv("STRIPE_SECRET_KEY", "")
-    hunter_api_key: str = os.getenv("HUNTER_API_KEY", "")  # email finder
+    hunter_api_key: str = os.getenv("HUNTER_API_KEY", "")
+    notify_email: str = os.getenv("NOTIFY_EMAIL", "")
 
     # Email settings
     smtp_host: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
