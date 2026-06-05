@@ -50,7 +50,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #fb-note{margin-top:7px;font-size:13px;font-style:italic;opacity:.8}
 
 /* ACTION BTNS */
-#btn-submit,#btn-next{display:none;background:#2563eb;color:#fff;border:none;border-radius:13px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;width:calc(100% - 24px);margin:10px 12px 0;-webkit-appearance:none}
+#btn-submit{display:none;background:#2563eb;color:#fff;border:none;border-radius:13px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;width:calc(100% - 24px);margin:10px 12px 0;-webkit-appearance:none;touch-action:manipulation}
+#nav-row{display:none;gap:9px;margin:10px 12px 0}
+#btn-prev{flex:1;min-width:0;background:#f1f5f9;color:#475569;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;-webkit-appearance:none;touch-action:manipulation}
+#btn-next{flex:2;min-width:0;background:#2563eb;color:#fff;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;-webkit-appearance:none;touch-action:manipulation}
 
 /* RESULTS */
 #results-screen{max-width:640px;margin:0 auto;padding:20px 12px;display:none}
@@ -134,7 +137,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="fb-note"></div>
     </div>
     <button id="btn-submit">Submit Answer</button>
-    <button id="btn-next">Next Question &rarr;</button>
+    <div id="nav-row" style="display:none">
+      <button id="btn-prev">&larr; Previous</button>
+      <button id="btn-next">Next &rarr;</button>
+    </div>
   </div>
 </div>
 
@@ -233,22 +239,20 @@ function startQuiz() {
   }
 }
 
+function updateNavRow() {
+  var showPrev = cur > 0;
+  var showNext = confirmed;
+  document.getElementById('btn-prev').style.display = showPrev ? '' : 'none';
+  document.getElementById('btn-next').style.display = showNext ? '' : 'none';
+  document.getElementById('nav-row').style.display = (showPrev || showNext) ? 'flex' : 'none';
+}
+
 function loadQuestion() {
   var q = qs[cur];
-  sel = null;
-  confirmed = false;
-
   document.getElementById('q-counter').textContent = 'Question ' + (cur + 1) + ' of ' + qs.length;
   document.getElementById('prog-fill').style.width = ((cur / qs.length) * 100) + '%';
   document.getElementById('sec-badge').textContent = q.s;
   document.getElementById('q-text').textContent = q.q;
-
-  var fb = document.getElementById('feedback');
-  fb.style.display = 'none';
-  fb.className = '';
-
-  document.getElementById('btn-submit').style.display = 'none';
-  document.getElementById('btn-next').style.display = 'none';
 
   var choicesEl = document.getElementById('choices');
   choicesEl.innerHTML = '';
@@ -259,6 +263,42 @@ function loadQuestion() {
     btn.innerHTML = '<span class="c-ltr">' + LETTERS[i] + '</span><span class="c-txt"></span>';
     btn.querySelector('.c-txt').textContent = q.c[i];
     choicesEl.appendChild(btn);
+  }
+
+  var fb = document.getElementById('feedback');
+
+  if (answers[cur] !== null) {
+    // Restore previously answered state
+    sel = answers[cur];
+    confirmed = true;
+    var ok = (sel === q.a);
+    var btns = choicesEl.querySelectorAll('.choice-btn');
+    for (var i = 0; i < btns.length; i++) {
+      if (i === q.a) btns[i].className = 'choice-btn right';
+      else if (i === sel && !ok) btns[i].className = 'choice-btn wrong';
+    }
+    fb.style.display = '';
+    fb.className = ok ? 'ok' : 'bad';
+    document.getElementById('fb-main').textContent = ok ? 'Correct!' : 'Incorrect. Correct answer: ' + LETTERS[q.a] + ') ' + q.c[q.a];
+    var fbNote = document.getElementById('fb-note');
+    fbNote.textContent = q.n ? 'Note: ' + q.n : '';
+    fbNote.style.display = q.n ? '' : 'none';
+    document.getElementById('btn-next').textContent = (cur === qs.length - 1) ? 'See Results' : 'Next →';
+  } else {
+    sel = null;
+    confirmed = false;
+    fb.style.display = 'none';
+    fb.className = '';
+  }
+
+  document.getElementById('btn-submit').style.display = 'none';
+  updateNavRow();
+}
+
+function prevQ() {
+  if (cur > 0) {
+    cur--;
+    loadQuestion();
   }
 }
 
@@ -296,9 +336,8 @@ function submitAnswer() {
   fbNote.style.display = q.n ? '' : 'none';
 
   document.getElementById('btn-submit').style.display = 'none';
-  var nextBtn = document.getElementById('btn-next');
-  nextBtn.textContent = (cur === qs.length - 1) ? 'See My Results' : 'Next Question';
-  nextBtn.style.display = '';
+  document.getElementById('btn-next').textContent = (cur === qs.length - 1) ? 'See Results' : 'Next →';
+  updateNavRow();
 }
 
 function nextQ() {
@@ -416,6 +455,7 @@ function wireEvents() {
   btnStart.addEventListener('touchend', function(e){ e.preventDefault(); startQuiz(); });
 
   document.getElementById('btn-submit').addEventListener('click', submitAnswer);
+  document.getElementById('btn-prev').addEventListener('click', prevQ);
   document.getElementById('btn-next').addEventListener('click', nextQ);
   document.getElementById('btn-review').addEventListener('click', showReview);
   document.getElementById('btn-retake').addEventListener('click', retake);
