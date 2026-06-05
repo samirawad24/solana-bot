@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>FL Insurance Exam</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;min-height:100vh;color:#1e293b}
+.screen{display:none}
+.screen.active{display:block}
+
+/* START */
+#start-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center;background:#f1f5f9}
+.s-icon{font-size:54px;margin-bottom:14px}
+.s-title{font-size:23px;font-weight:800;margin-bottom:5px}
+.s-sub{font-size:14px;color:#64748b;margin-bottom:24px;line-height:1.5}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:340px;margin-bottom:24px}
+.ic{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ic-num{font-size:24px;font-weight:800;color:#2563eb}
+.ic-lbl{font-size:10px;color:#94a3b8;margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.btn-start{background:#2563eb;color:#fff;border:none;border-radius:14px;padding:16px;font-size:17px;font-weight:700;cursor:pointer;width:100%;max-width:340px;-webkit-appearance:none;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+
+/* HEADER */
+#quiz-header{background:#fff;padding:10px 14px;position:sticky;top:0;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.h-row{display:flex;justify-content:space-between;margin-bottom:7px;font-size:13px;font-weight:600;color:#64748b}
+#prog-track{background:#e2e8f0;border-radius:99px;height:5px;overflow:hidden}
+#prog-fill{background:#2563eb;height:5px;border-radius:99px;transition:width .3s}
+
+/* CARD */
+.q-wrap{max-width:640px;margin:0 auto;padding-bottom:30px}
+#q-card{background:#fff;margin:12px 12px 0;border-radius:14px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.07)}
+#sec-badge{display:inline-block;background:#eff6ff;color:#2563eb;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px}
+#q-text{font-size:16px;line-height:1.6;font-weight:500;margin-bottom:16px}
+#choices{display:flex;flex-direction:column;gap:8px}
+.choice-btn{display:flex;align-items:flex-start;gap:10px;background:#f8fafc;border:2px solid #e2e8f0;border-radius:11px;padding:12px 13px;cursor:pointer;text-align:left;width:100%;font-size:15px;color:#1e293b;line-height:1.4;-webkit-appearance:none}
+.choice-btn.sel{border-color:#2563eb;background:#eff6ff}
+.choice-btn.right{border-color:#16a34a;background:#f0fdf4}
+.choice-btn.wrong{border-color:#dc2626;background:#fef2f2}
+.c-ltr{flex-shrink:0;width:26px;height:26px;border-radius:6px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#475569}
+.choice-btn.sel .c-ltr{background:#2563eb;color:#fff}
+.choice-btn.right .c-ltr{background:#16a34a;color:#fff}
+.choice-btn.wrong .c-ltr{background:#dc2626;color:#fff}
+.c-txt{flex:1;word-break:break-word}
+
+/* FEEDBACK */
+#feedback{margin:10px 12px 0;padding:12px 14px;border-radius:11px;font-size:14px;line-height:1.5;display:none}
+#feedback.ok{background:#f0fdf4;border-left:4px solid #16a34a;color:#15803d}
+#feedback.bad{background:#fef2f2;border-left:4px solid #dc2626;color:#b91c1c}
+#fb-note{margin-top:7px;font-size:13px;font-style:italic;opacity:.8}
+
+/* ACTION BTNS */
+#btn-submit,#btn-next{display:none;background:#2563eb;color:#fff;border:none;border-radius:13px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;width:calc(100% - 24px);margin:10px 12px 0;-webkit-appearance:none}
+
+/* RESULTS */
+#results-screen{max-width:640px;margin:0 auto;padding:20px 12px;display:none}
+.score-ring{width:120px;height:120px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 12px;border:5px solid}
+.score-ring.pass{border-color:#16a34a;background:#f0fdf4}
+.score-ring.fail{border-color:#dc2626;background:#fef2f2}
+.s-pct{font-size:34px;font-weight:900;line-height:1}
+.score-ring.pass .s-pct{color:#16a34a}
+.score-ring.fail .s-pct{color:#dc2626}
+.s-frac{font-size:12px;color:#94a3b8;margin-top:2px}
+.pf-badge{display:inline-block;padding:4px 16px;border-radius:99px;font-size:13px;font-weight:800}
+.pf-badge.pass{background:#16a34a;color:#fff}
+.pf-badge.fail{background:#dc2626;color:#fff}
+.res-ctr{text-align:center;margin-bottom:16px}
+.res-sub{font-size:13px;color:#64748b;margin-top:4px}
+.card{background:#fff;border-radius:13px;padding:14px;margin-bottom:11px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.s-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px}
+.s-row:last-child{border-bottom:none}
+.s-lbl{color:#64748b}
+.s-val{font-weight:700}
+.s-val.g{color:#16a34a}
+.s-val.r{color:#dc2626}
+.sec-row{margin-bottom:11px}
+.sec-hdr{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.sec-nm{color:#475569;font-weight:500}
+.sec-p{font-weight:700}
+.bar-t{background:#e2e8f0;border-radius:99px;height:6px;overflow:hidden}
+.bar-f{height:100%;border-radius:99px}
+.res-btns{display:flex;flex-direction:column;gap:9px}
+.btn-dark{background:#1e293b;color:#fff;border:none;border-radius:13px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;width:100%;-webkit-appearance:none}
+.btn-blue{background:#2563eb;color:#fff;border:none;border-radius:13px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;width:100%;-webkit-appearance:none}
+
+/* REVIEW */
+#review-screen{max-width:640px;margin:0 auto;padding:14px 12px;display:none}
+.rev-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.btn-back{background:#f1f5f9;border:none;border-radius:9px;padding:7px 12px;font-size:14px;font-weight:600;cursor:pointer;color:#475569;-webkit-appearance:none}
+.rev-title{font-size:17px;font-weight:800}
+.rev-item{background:#fff;border-radius:13px;padding:16px;margin-bottom:11px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-left:4px solid #dc2626}
+.rev-meta{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px}
+.rev-q{font-size:15px;font-weight:500;line-height:1.5;margin-bottom:10px;word-break:break-word}
+.rev-ans{display:flex;gap:7px;padding:8px 11px;border-radius:8px;margin-bottom:5px;font-size:14px;line-height:1.4;word-break:break-word}
+.rev-ans.yours{background:#fef2f2;color:#b91c1c}
+.rev-ans.correct{background:#f0fdf4;color:#15803d}
+.rev-lbl{font-weight:800;flex-shrink:0}
+.rev-note{margin-top:8px;font-size:13px;color:#64748b;line-height:1.5;padding:9px 11px;background:#f8fafc;border-radius:7px}
+</style>
+</head>
+<body>
+
+<!-- START SCREEN (always visible without JS) -->
+<div id="start-screen">
+  <div class="s-icon">&#128203;</div>
+  <h1 class="s-title">FL Life &amp; Health Insurance</h1>
+  <p class="s-sub">Official Practice Exam &bull; Verified against Florida Statutes</p>
+  <div class="info-grid">
+    <div class="ic"><div class="ic-num">150</div><div class="ic-lbl">Questions</div></div>
+    <div class="ic"><div class="ic-num">70%</div><div class="ic-lbl">To Pass</div></div>
+    <div class="ic"><div class="ic-num">6</div><div class="ic-lbl">Topics</div></div>
+    <div class="ic"><div class="ic-num">&#8734;</div><div class="ic-lbl">Randomized</div></div>
+  </div>
+  <button class="btn-start" id="btn-start">Start Practice Exam</button>
+</div>
+
+<!-- QUIZ SCREEN -->
+<div id="quiz-screen">
+  <div id="quiz-header">
+    <div class="h-row">
+      <span id="q-counter">Question 1 of 150</span>
+      <span id="tmr">00:00</span>
+    </div>
+    <div id="prog-track"><div id="prog-fill" style="width:0%"></div></div>
+  </div>
+  <div class="q-wrap">
+    <div id="q-card">
+      <div id="sec-badge">Life Insurance</div>
+      <p id="q-text"></p>
+      <div id="choices"></div>
+    </div>
+    <div id="feedback">
+      <span id="fb-main"></span>
+      <div id="fb-note"></div>
+    </div>
+    <button id="btn-submit">Submit Answer</button>
+    <button id="btn-next">Next Question &rarr;</button>
+  </div>
+</div>
+
+<!-- RESULTS SCREEN -->
+<div id="results-screen">
+  <div class="res-ctr">
+    <div id="score-ring" class="score-ring fail">
+      <div class="s-pct" id="score-pct">0%</div>
+      <div class="s-frac" id="score-frac">0/150</div>
+    </div>
+    <span id="pf-badge" class="pf-badge fail">NEEDS REVIEW</span>
+    <p class="res-sub" id="res-sub"></p>
+  </div>
+  <div class="card">
+    <div class="s-row"><span class="s-lbl">Correct</span><span class="s-val g" id="r-correct">0</span></div>
+    <div class="s-row"><span class="s-lbl">Incorrect</span><span class="s-val r" id="r-wrong">0</span></div>
+    <div class="s-row"><span class="s-lbl">Score</span><span class="s-val" id="r-score">0%</span></div>
+    <div class="s-row"><span class="s-lbl">Time</span><span class="s-val" id="r-time">00:00</span></div>
+    <div class="s-row"><span class="s-lbl">Passing Score</span><span class="s-val">70% (105/150)</span></div>
+  </div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Score by Topic</div>
+    <div id="breakdown"></div>
+  </div>
+  <div class="res-btns">
+    <button class="btn-dark" id="btn-review" style="display:none">Review Missed Questions</button>
+    <button class="btn-blue" id="btn-retake">New Randomized Test</button>
+  </div>
+</div>
+
+<!-- REVIEW SCREEN -->
+<div id="review-screen">
+  <div class="rev-hdr">
+    <button class="btn-back" id="btn-back">&larr; Back</button>
+    <h2 class="rev-title" id="rev-title">Missed Questions</h2>
+  </div>
+  <div id="review-list"></div>
+  <button class="btn-blue" id="btn-retake2" style="width:100%;margin-top:4px">New Randomized Test</button>
+</div>
+
+<script>
+var LETTERS = ['A','B','C','D'];
+var timerID = null;
+var elapsed = 0;
+var qs = [];
+var cur = 0;
+var sel = null;
+var confirmed = false;
+var answers = [];
+
+function show(id) {
+  var ids = ['start-screen','quiz-screen','results-screen','review-screen'];
+  for (var i = 0; i < ids.length; i++) {
+    document.getElementById(ids[i]).style.display = ids[i] === id ? (id === 'start-screen' ? 'flex' : 'block') : 'none';
+  }
+}
+
+function fmt(s) {
+  var m = Math.floor(s / 60);
+  var sec = s % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
+}
+
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function barColor(p) {
+  return p >= 70 ? '#16a34a' : p >= 50 ? '#d97706' : '#dc2626';
+}
+
+function startQuiz() {
+  try {
+    clearInterval(timerID);
+    elapsed = 0;
+    qs = shuffle(ALL_Q);
+    cur = 0;
+    sel = null;
+    confirmed = false;
+    answers = [];
+    for (var i = 0; i < qs.length; i++) answers.push(null);
+    show('quiz-screen');
+    timerID = setInterval(function() {
+      elapsed++;
+      var el = document.getElementById('tmr');
+      if (el) el.textContent = fmt(elapsed);
+    }, 1000);
+    loadQuestion();
+  } catch(err) {
+    alert('Error starting quiz: ' + err.message);
+  }
+}
+
+function loadQuestion() {
+  var q = qs[cur];
+  sel = null;
+  confirmed = false;
+
+  document.getElementById('q-counter').textContent = 'Question ' + (cur + 1) + ' of ' + qs.length;
+  document.getElementById('prog-fill').style.width = ((cur / qs.length) * 100) + '%';
+  document.getElementById('sec-badge').textContent = q.s;
+  document.getElementById('q-text').textContent = q.q;
+
+  var fb = document.getElementById('feedback');
+  fb.style.display = 'none';
+  fb.className = '';
+
+  document.getElementById('btn-submit').style.display = 'none';
+  document.getElementById('btn-next').style.display = 'none';
+
+  var choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  for (var i = 0; i < q.c.length; i++) {
+    var btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.setAttribute('data-idx', i);
+    btn.innerHTML = '<span class="c-ltr">' + LETTERS[i] + '</span><span class="c-txt"></span>';
+    btn.querySelector('.c-txt').textContent = q.c[i];
+    choicesEl.appendChild(btn);
+  }
+}
+
+function pickAnswer(idx) {
+  if (confirmed) return;
+  sel = idx;
+  var btns = document.getElementById('choices').querySelectorAll('.choice-btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].className = 'choice-btn' + (i === idx ? ' sel' : '');
+  }
+  document.getElementById('btn-submit').style.display = '';
+}
+
+function submitAnswer() {
+  if (sel === null) return;
+  confirmed = true;
+  answers[cur] = sel;
+  var q = qs[cur];
+  var ok = (sel === q.a);
+
+  var btns = document.getElementById('choices').querySelectorAll('.choice-btn');
+  for (var i = 0; i < btns.length; i++) {
+    if (i === q.a) btns[i].className = 'choice-btn right';
+    else if (i === sel && !ok) btns[i].className = 'choice-btn wrong';
+    else btns[i].className = 'choice-btn';
+  }
+
+  var fb = document.getElementById('feedback');
+  var fbMain = document.getElementById('fb-main');
+  var fbNote = document.getElementById('fb-note');
+  fb.style.display = '';
+  fb.className = ok ? 'ok' : 'bad';
+  fbMain.textContent = ok ? 'Correct!' : 'Incorrect. Correct answer: ' + LETTERS[q.a] + ') ' + q.c[q.a];
+  fbNote.textContent = q.n ? 'Note: ' + q.n : '';
+  fbNote.style.display = q.n ? '' : 'none';
+
+  document.getElementById('btn-submit').style.display = 'none';
+  var nextBtn = document.getElementById('btn-next');
+  nextBtn.textContent = (cur === qs.length - 1) ? 'See My Results' : 'Next Question';
+  nextBtn.style.display = '';
+}
+
+function nextQ() {
+  if (cur < qs.length - 1) {
+    cur++;
+    loadQuestion();
+  } else {
+    clearInterval(timerID);
+    showResults();
+  }
+}
+
+function showResults() {
+  var total = qs.length;
+  var correct = 0;
+  for (var i = 0; i < total; i++) {
+    if (answers[i] === qs[i].a) correct++;
+  }
+  var pct = Math.round(correct / total * 100);
+  var passed = pct >= 70;
+  var missed = total - correct;
+
+  var ring = document.getElementById('score-ring');
+  ring.className = 'score-ring ' + (passed ? 'pass' : 'fail');
+  document.getElementById('score-pct').textContent = pct + '%';
+  document.getElementById('score-frac').textContent = correct + '/' + total;
+
+  var badge = document.getElementById('pf-badge');
+  badge.className = 'pf-badge ' + (passed ? 'pass' : 'fail');
+  badge.textContent = passed ? 'PASS' : 'NEEDS REVIEW';
+
+  document.getElementById('res-sub').textContent = passed ? "Great work! You're exam ready." : "Keep studying - you're getting there!";
+  document.getElementById('r-correct').textContent = correct;
+  document.getElementById('r-wrong').textContent = missed;
+  document.getElementById('r-score').textContent = pct + '%';
+  document.getElementById('r-time').textContent = fmt(elapsed);
+
+  var secs = {};
+  for (var i = 0; i < qs.length; i++) {
+    var sn = qs[i].s;
+    if (!secs[sn]) secs[sn] = {c:0, t:0};
+    secs[sn].t++;
+    if (answers[i] === qs[i].a) secs[sn].c++;
+  }
+  var bd = document.getElementById('breakdown');
+  bd.innerHTML = '';
+  for (var sn in secs) {
+    var d = secs[sn];
+    var p = Math.round(d.c / d.t * 100);
+    var col = barColor(p);
+    var row = document.createElement('div');
+    row.className = 'sec-row';
+    row.innerHTML = '<div class="sec-hdr"><span class="sec-nm"></span><span class="sec-p" style="color:' + col + '"></span></div>' +
+      '<div class="bar-t"><div class="bar-f" style="width:' + p + '%;background:' + col + '"></div></div>';
+    row.querySelector('.sec-nm').textContent = sn;
+    row.querySelector('.sec-p').textContent = d.c + '/' + d.t + ' (' + p + '%)';
+    bd.appendChild(row);
+  }
+
+  var reviewBtn = document.getElementById('btn-review');
+  reviewBtn.style.display = missed > 0 ? '' : 'none';
+  reviewBtn.textContent = 'Review ' + missed + ' Missed Question' + (missed !== 1 ? 's' : '');
+
+  show('results-screen');
+}
+
+function showReview() {
+  var list = document.getElementById('review-list');
+  list.innerHTML = '';
+  var count = 0;
+  for (var i = 0; i < qs.length; i++) {
+    if (answers[i] === qs[i].a) continue;
+    count++;
+    var q = qs[i];
+    var u = answers[i];
+    var item = document.createElement('div');
+    item.className = 'rev-item';
+    var uText = u !== null ? LETTERS[u] + ') ' + q.c[u] : 'Not answered';
+    item.innerHTML = '<div class="rev-meta"></div>' +
+      '<div class="rev-q"></div>' +
+      '<div class="rev-ans yours"><span class="rev-lbl">Your answer: </span><span class="u-ans"></span></div>' +
+      '<div class="rev-ans correct"><span class="rev-lbl">Correct: </span><span class="c-ans"></span></div>';
+    item.querySelector('.rev-meta').textContent = q.s + ' - Q' + (i + 1);
+    item.querySelector('.rev-q').textContent = q.q;
+    item.querySelector('.u-ans').textContent = uText;
+    item.querySelector('.c-ans').textContent = LETTERS[q.a] + ') ' + q.c[q.a];
+    if (q.n) {
+      var note = document.createElement('div');
+      note.className = 'rev-note';
+      note.textContent = 'Note: ' + q.n;
+      item.appendChild(note);
+    }
+    list.appendChild(item);
+  }
+  document.getElementById('rev-title').textContent = 'Missed Questions (' + count + ')';
+  show('review-screen');
+}
+
+function retake() {
+  clearInterval(timerID);
+  show('start-screen');
+}
+
+function backToResults() {
+  show('results-screen');
+}
+
+function wireEvents() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('results-screen').style.display = 'none';
+  document.getElementById('review-screen').style.display = 'none';
+
+  var btnStart = document.getElementById('btn-start');
+  btnStart.addEventListener('click', startQuiz);
+  btnStart.addEventListener('touchend', function(e){ e.preventDefault(); startQuiz(); });
+
+  document.getElementById('btn-submit').addEventListener('click', submitAnswer);
+  document.getElementById('btn-next').addEventListener('click', nextQ);
+  document.getElementById('btn-review').addEventListener('click', showReview);
+  document.getElementById('btn-retake').addEventListener('click', retake);
+  document.getElementById('btn-retake2').addEventListener('click', retake);
+  document.getElementById('btn-back').addEventListener('click', backToResults);
+  document.getElementById('choices').addEventListener('click', function(e) {
+    var btn = e.target;
+    while (btn && btn !== this) {
+      if (btn.className && btn.className.indexOf('choice-btn') !== -1) {
+        pickAnswer(parseInt(btn.getAttribute('data-idx')));
+        return;
+      }
+      btn = btn.parentElement;
+    }
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', wireEvents);
+} else {
+  wireEvents();
+}
+
+// ---- ALL 150 QUESTIONS ----
+var ALL_Q = [
+{q:"What is the primary purpose of life insurance?",c:["To provide income during retirement","To replace lost income and cover financial obligations upon the insured's death","To pay medical expenses","To fund a college education"],a:1,s:"Life Insurance"},
+{q:"Which of the following best defines insurable interest in a life insurance policy?",c:["The policyholder's desire to profit from the insured's death","A financial relationship where the policyholder would suffer a financial loss upon the insured's death","The insured's interest in keeping the policy in force","The insurance company's interest in collecting premiums"],a:1,s:"Life Insurance"},
+{q:"Under a whole life insurance policy, cash value:",c:["Decreases over time","Accumulates on a tax-deferred basis","Is only available after age 65","Does not exist"],a:1,s:"Life Insurance"},
+{q:"Term life insurance provides coverage:",c:["For the insured's entire lifetime","Only if premiums are paid for 20 years","For a specified period of time","Until the insured reaches age 65"],a:2,s:"Life Insurance"},
+{q:"Which type of policy combines term insurance with a separate savings element?",c:["Whole life","Universal life","Term life","Variable annuity"],a:1,s:"Life Insurance"},
+{q:"A level premium means:",c:["Premiums increase each year","Premiums decrease as the insured ages","Premiums remain the same throughout the policy period","Premiums are paid all at once"],a:2,s:"Life Insurance"},
+{q:"The free look period for life insurance in Florida is:",c:["10 days","14 days","21 days","30 days"],a:1,s:"Life Insurance",n:"Florida Statute 627.4555 requires a minimum 14-day free-look period for life insurance."},
+{q:"Which rider allows a policyholder to purchase additional insurance without a medical exam?",c:["Accidental Death Benefit rider","Waiver of Premium rider","Guaranteed Insurability rider","Return of Premium rider"],a:2,s:"Life Insurance"},
+{q:"The incontestability clause in a life insurance policy states that the insurer:",c:["Can cancel the policy at any time for any reason","Cannot contest the policy after it has been in force for 2 years","Must pay double the face value if death is accidental","May contest any claim made within 5 years"],a:1,s:"Life Insurance"},
+{q:"A beneficiary is:",c:["The person insured under the policy","The person or entity that receives the death benefit","The insurance agent selling the policy","The insurance company"],a:1,s:"Life Insurance"},
+{q:"What is the purpose of the suicide clause in life insurance?",c:["To exclude coverage if the insured is involved in dangerous activities","To deny claims if suicide occurs within the first 2 years of the policy","To provide extra benefits if death occurs unexpectedly","To protect the insurer from fraudulent claims"],a:1,s:"Life Insurance"},
+{q:"Variable life insurance differs from whole life because:",c:["It has no cash value","The death benefit and cash value fluctuate based on investment performance","Premiums are flexible","It only covers accidental death"],a:1,s:"Life Insurance"},
+{q:"Universal life insurance provides:",c:["Fixed premiums and fixed death benefit only","Flexible premiums and adjustable death benefits","Coverage only for 20 years","No cash value accumulation"],a:1,s:"Life Insurance"},
+{q:"The automatic premium loan provision:",c:["Allows the insurer to increase premiums automatically","Automatically borrows from cash value to pay overdue premiums","Provides an automatic loan to the beneficiary upon death","Converts term insurance to whole life"],a:1,s:"Life Insurance"},
+{q:"Which of the following is NOT a nonforfeiture option?",c:["Extended term insurance","Reduced paid-up insurance","Cash surrender value","Dividend accumulation"],a:3,s:"Life Insurance"},
+{q:"A policy loan on a life insurance policy:",c:["Must be repaid within 5 years","Reduces the death benefit if not repaid","Requires the insured to pass a medical exam","Cancels the policy automatically"],a:1,s:"Life Insurance"},
+{q:"Which type of life insurance is typically used to fund business partnership buy-sell agreements?",c:["Group term life","Individual whole life or term","Variable universal life","Credit life insurance"],a:1,s:"Life Insurance"},
+{q:"Key person insurance is designed to:",c:["Provide retirement income for executives","Protect a business from financial loss due to the death of a key employee","Cover all employees of a company","Fund employee benefit plans"],a:1,s:"Life Insurance"},
+{q:"The spendthrift clause in a life insurance policy:",c:["Limits the amount the insured can borrow","Protects policy proceeds from the beneficiary's creditors","Prevents the policyholder from changing beneficiaries","Requires a lump-sum payment to beneficiaries"],a:1,s:"Life Insurance"},
+{q:"Which settlement option pays the death benefit in fixed installments over a specified period?",c:["Interest only option","Fixed period option","Life income option","Fixed amount option"],a:1,s:"Life Insurance"},
+{q:"An irrevocable beneficiary designation means:",c:["The beneficiary can be changed at any time","The policyholder cannot change the beneficiary without the beneficiary's consent","The beneficiary receives a guaranteed minimum benefit","The designation automatically changes upon divorce"],a:1,s:"Life Insurance"},
+{q:"Which of the following is TRUE about group life insurance?",c:["Each insured receives an individual policy","Coverage is provided under a master contract issued to the employer","Medical examinations are always required","Premiums are paid entirely by employees"],a:1,s:"Life Insurance"},
+{q:"The conversion privilege in a group term policy allows an employee to:",c:["Convert their term policy to a group whole life policy","Convert to an individual permanent policy without evidence of insurability upon leaving the group","Convert their premium payments to annual installments","Change beneficiaries without employer approval"],a:1,s:"Life Insurance"},
+{q:"Which of the following is a third-party ownership life insurance situation?",c:["A person buys insurance on their own life","An employer owns a policy on an employee's life","A husband and wife own joint policies","A child owns a policy on their own life"],a:1,s:"Life Insurance"},
+{q:"Participating life insurance policies:",c:["Require the policyholder to participate in claims decisions","Pay dividends to policyholders from surplus earnings","Allow the insured to participate in setting premium rates","Are only available through mutual savings banks"],a:1,s:"Life Insurance"},
+{q:"What does the misstatement of age provision do?",c:["Voids the policy if age is misstated","Adjusts the death benefit based on the correct age and premium paid","Increases the premium retroactively","Waives future premiums"],a:1,s:"Life Insurance"},
+{q:"Under Florida law, the minimum grace period for life insurance premium payments is:",c:["10 days","21 days","30 days","60 days"],a:2,s:"Life Insurance",n:"Florida Statute 627.453 requires a grace period of not less than 30 days for individual life insurance policies."},
+{q:"A reduced paid-up nonforfeiture option provides:",c:["Extended term coverage for the full face amount","A smaller paid-up whole life policy with no further premiums required","A cash payment equal to the surrender value","Continued coverage with reduced premiums"],a:1,s:"Life Insurance"},
+{q:"Which rider waives premium payments if the insured becomes totally disabled?",c:["Accidental death rider","Waiver of premium rider","Disability income rider","Return of premium rider"],a:1,s:"Life Insurance"},
+{q:"The common disaster clause addresses situations where:",c:["The insured and beneficiary die simultaneously","A natural disaster destroys the policy documents","Multiple policyholders file claims at the same time","The insurer becomes insolvent"],a:0,s:"Life Insurance"},
+{q:"An annuity is best described as:",c:["A life insurance policy that pays upon death","A contract that provides a stream of income payments often used for retirement","A savings account at an insurance company","A health insurance supplement"],a:1,s:"Annuities"},
+{q:"During the accumulation phase of an annuity:",c:["The annuitant receives monthly income payments","Funds grow on a tax-deferred basis","The death benefit is calculated","The contract is converted to life insurance"],a:1,s:"Annuities"},
+{q:"A fixed annuity guarantees:",c:["A variable return based on market performance","A minimum guaranteed interest rate","Returns linked to the S&P 500","No guaranteed interest rate"],a:1,s:"Annuities"},
+{q:"A variable annuity differs from a fixed annuity because:",c:["Variable annuities have no surrender charges","The accumulation value varies based on investment sub-account performance","Variable annuities cannot be annuitized","Variable annuities are not regulated by insurance departments"],a:1,s:"Annuities"},
+{q:"The annuitant is:",c:["The person who owns the annuity contract","The insurance company issuing the contract","The person whose life expectancy determines income payments","The person who receives death benefits"],a:2,s:"Annuities"},
+{q:"Which payout option provides income for the annuitant's entire lifetime with no minimum payment guarantee?",c:["Life with period certain","Joint and survivor annuity","Straight life (life only) annuity","Fixed period annuity"],a:2,s:"Annuities"},
+{q:"A surrender charge on an annuity:",c:["Is a fee charged when the annuitant receives monthly payments","Is a penalty for withdrawing funds during the surrender period","Is charged annually for policy maintenance","Applies only to fixed annuities"],a:1,s:"Annuities"},
+{q:"In a joint and survivor annuity, payments continue:",c:["Only during the primary annuitant's lifetime","For a guaranteed period regardless of survival","Until both annuitants die","For exactly 20 years"],a:2,s:"Annuities"},
+{q:"Which type of annuity is purchased with a single lump-sum payment and begins paying income immediately?",c:["Flexible premium deferred annuity","Single premium immediate annuity (SPIA)","Variable annuity","Equity-indexed annuity"],a:1,s:"Annuities"},
+{q:"The free corridor amount in an annuity contract refers to:",c:["The initial premium payment","The amount that can be withdrawn annually without surrender charges (typically 10%)","The portion of the annuity that is tax-free","The death benefit amount"],a:1,s:"Annuities"},
+{q:"An equity-indexed annuity:",c:["Invests directly in stocks","Credits interest based on a stock market index while providing a minimum guarantee","Provides variable income with no guarantees","Is classified as a security by the SEC"],a:1,s:"Annuities"},
+{q:"Which of the following best describes a deferred annuity?",c:["Income payments begin immediately upon purchase","The annuity accumulates value before income payments begin at a future date","The contract defers taxation until age 70 and a half","Premium payments are deferred for 5 years"],a:1,s:"Annuities"},
+{q:"Under a period certain annuity, if the annuitant dies before the guaranteed period ends:",c:["All remaining payments are forfeited","Payments continue to a named beneficiary for the remaining period","A lump sum is paid to the estate","The insurer keeps the remaining funds"],a:1,s:"Annuities"},
+{q:"Annuity earnings are taxed as:",c:["Capital gains","Ordinary income when distributed","Tax-free income","Estate income"],a:1,s:"Annuities"},
+{q:"The exclusion ratio in a non-qualified annuity determines:",c:["The portion of each payment that is a tax-free return of principal","Which beneficiaries are excluded from receiving payments","The percentage of income excluded from Social Security calculations","How much of the premium can be excluded from the estate"],a:0,s:"Annuities"},
+{q:"Which annuity payout option provides the highest initial monthly income for a single annuitant?",c:["Life with 20-year certain","Joint and full survivor","Straight life (life only)","Life with cash refund"],a:2,s:"Annuities"},
+{q:"A 1035 exchange allows a policyholder to:",c:["Exchange an annuity for a life insurance policy tax-free","Transfer funds from one annuity to another without incurring immediate taxes","Exchange a life insurance policy for term coverage","Roll over an IRA into an annuity tax-free"],a:1,s:"Annuities"},
+{q:"Variable annuities are regulated by:",c:["Only state insurance departments","Only the SEC and FINRA","Both state insurance departments AND federal securities regulators (SEC and FINRA)","The Federal Reserve"],a:2,s:"Annuities"},
+{q:"The mortality and expense charge in a variable annuity compensates the insurer for:",c:["Investment management fees","The risk of guaranteeing income for life and administrative expenses","Sales commissions to agents","State premium taxes"],a:1,s:"Annuities"},
+{q:"Under Florida law, the free-look period for an annuity contract is:",c:["10 days","14 days","21 days","30 days"],a:2,s:"Annuities",n:"Florida law requires a minimum 21-day free-look period for annuity contracts."},
+{q:"An indemnity health plan:",c:["Requires the insured to use network providers only","Pays a predetermined amount regardless of actual charges","Reimburses actual medical expenses up to a maximum","Provides coverage only for hospitalization"],a:1,s:"Health Insurance"},
+{q:"A Health Maintenance Organization (HMO) requires members to:",c:["Pay all costs up front and seek reimbursement","See any physician they choose without a referral","Select a primary care physician who coordinates care and provides referrals","Use only hospital-based physicians"],a:2,s:"Health Insurance"},
+{q:"A Preferred Provider Organization (PPO) differs from an HMO because:",c:["PPOs have no deductibles","Members can see out-of-network providers at a higher cost","PPOs do not require premium payments","PPOs only cover preventive care"],a:1,s:"Health Insurance"},
+{q:"The deductible in a health insurance policy is:",c:["The maximum amount the insurer will pay per year","The amount the insured must pay out-of-pocket before insurance benefits begin","The monthly premium amount","The copayment required at each visit"],a:1,s:"Health Insurance"},
+{q:"Coinsurance in health insurance means:",c:["Two insurers share the same risk","The insured and insurer share costs after the deductible is met such as 80/20","The insured pays a flat fee per visit","The employer co-pays part of the premium"],a:1,s:"Health Insurance"},
+{q:"The out-of-pocket maximum is:",c:["The maximum premium the insured can pay per year","The cap on total cost-sharing the insured pays annually after which the insurer pays 100%","The maximum deductible allowed under ACA plans","The maximum benefit the insurer will pay"],a:1,s:"Health Insurance"},
+{q:"Under the Affordable Care Act (ACA), insurers cannot deny coverage based on:",c:["Geographic location","Pre-existing conditions","Age","Tobacco use"],a:1,s:"Health Insurance"},
+{q:"COBRA allows qualified individuals to:",c:["Convert group health insurance to Medicare automatically","Continue group health coverage after leaving employment at their own expense for up to 18 months","Receive free health coverage after job loss for 90 days","Transfer coverage to a new employer's plan immediately"],a:1,s:"Health Insurance"},
+{q:"A copayment is:",c:["A percentage of the claim paid by the insured","A flat dollar amount the insured pays for a specific service such as $30 per office visit","The annual deductible amount","The monthly premium"],a:1,s:"Health Insurance"},
+{q:"Which provision addresses how benefits are paid when an insured has coverage under multiple health insurance policies?",c:["Coordination of Benefits (COB)","Subrogation","Continuation of coverage","Conversion privilege"],a:0,s:"Health Insurance"},
+{q:"Coordination of Benefits (COB) is designed to:",c:["Coordinate referrals between primary and specialty care","Prevent the insured from collecting more than 100% of actual expenses from multiple policies","Coordinate Medicare and Medicaid benefits","Ensure all claims are processed within 30 days"],a:1,s:"Health Insurance"},
+{q:"A preauthorization requirement means:",c:["The insured must pay all costs in advance","Certain procedures must be approved by the insurer before they are performed","The insured must authorize premium deductions from their paycheck","The physician must be licensed before treating the insured"],a:1,s:"Health Insurance"},
+{q:"Which of the following is covered under a basic hospital expense policy?",c:["Office visits and prescription drugs","Room and board, hospital services, and nursing care during hospitalization","Long-term care in a nursing facility","Mental health outpatient treatment"],a:1,s:"Health Insurance"},
+{q:"A major medical policy:",c:["Covers only hospital room and board","Provides broad coverage for a wide range of medical expenses with a high lifetime maximum","Covers only surgeries costing more than $10,000","Is a supplement to Medicare"],a:1,s:"Health Insurance"},
+{q:"The elimination period in a health insurance policy is:",c:["The time the insured must wait before coverage begins after enrollment","The period after a loss during which no benefits are paid similar to a time deductible","The period the insurer has to investigate a claim","The time between policy issuance and the first premium due date"],a:1,s:"Health Insurance"},
+{q:"Which provision allows a terminated employee to convert group health insurance to an individual policy?",c:["COBRA continuation","Conversion privilege","Portability provision","Reinstatement clause"],a:1,s:"Health Insurance"},
+{q:"Under Florida law, the minimum grace period for individual health insurance premiums is:",c:["7 days","10 days","31 days","60 days"],a:2,s:"Health Insurance"},
+{q:"A pre-existing condition is best defined as:",c:["Any condition the insured expects to develop in the future","A condition for which the insured received diagnosis or treatment before the policy's effective date","A hereditary condition present at birth","Any condition not covered by the policy"],a:1,s:"Health Insurance"},
+{q:"The physical exam and autopsy provision allows insurers to:",c:["Require the insured to undergo an annual physical","Have the insured examined by a company physician while a claim is pending at the insurer's expense","Deny coverage if the insured refuses an autopsy","Use physical exam results to increase premiums"],a:1,s:"Health Insurance"},
+{q:"Mental health parity laws require that:",c:["Mental health benefits must be free of charge","Insurers must cover mental health on the same basis as physical health conditions","All mental health claims are pre-approved automatically","Mental health providers must be licensed in the state of Florida"],a:1,s:"Health Insurance"},
+{q:"A Health Savings Account (HSA) must be paired with:",c:["Any health insurance plan","A High-Deductible Health Plan (HDHP)","Medicare Part B","A group employer plan only"],a:1,s:"Health Insurance"},
+{q:"Which of the following is a characteristic of an HSA?",c:["Contributions are made with after-tax dollars only","Unused funds are forfeited at the end of the year","Funds can be used tax-free for qualified medical expenses and roll over year to year","Withdrawals for non-medical expenses are always tax-free"],a:2,s:"Health Insurance"},
+{q:"A Flexible Spending Account (FSA) differs from an HSA in that:",c:["FSA funds roll over indefinitely","FSAs do not require a high-deductible health plan but funds are generally use it or lose it","FSAs are funded only by the employer","FSA contributions are unlimited"],a:1,s:"Health Insurance"},
+{q:"Medicare Part A primarily covers:",c:["Physician services and outpatient care","Inpatient hospital stays, skilled nursing facility care, and home health care","Prescription drugs","Dental and vision care"],a:1,s:"Health Insurance"},
+{q:"Medicare Part B covers:",c:["Hospital stays","Physician services, outpatient care, and preventive services","Prescription drugs","Long-term nursing home care"],a:1,s:"Health Insurance"},
+{q:"Medicare Part D covers:",c:["Doctor visits","Hospital stays","Outpatient prescription drugs","Hospice care"],a:2,s:"Health Insurance"},
+{q:"The Medicare coverage gap (donut hole) refers to:",c:["A gap in hospital coverage between Medicare A and B","A temporary limit on what Medicare Part D covers for drug costs after a spending threshold is reached","The period when Medicare does not cover any costs","A gap in coverage between COBRA and Medicare eligibility"],a:1,s:"Health Insurance"},
+{q:"Medicaid is a program funded by:",c:["The federal government only","State governments only","Both federal and state governments primarily serving low-income individuals","Premium contributions from covered individuals"],a:2,s:"Health Insurance"},
+{q:"Which of the following is TRUE about Medicare Supplement (Medigap) policies?",c:["They replace Medicare coverage entirely","They cover costs not paid by original Medicare such as deductibles and coinsurance","They include prescription drug coverage","They are available to any individual under age 65 without a disability"],a:1,s:"Health Insurance"},
+{q:"Under Florida law, how long does a health insurer have to pay or deny a clean claim?",c:["10 days","30 days","45 days","90 days"],a:2,s:"Health Insurance",n:"Florida Statute 627.6131 requires health insurers to pay or deny clean claims within 45 days of receipt."},
+{q:"A stop-loss provision in a major medical policy:",c:["Stops the insurer from paying once a maximum benefit is reached","Caps the insured's annual out-of-pocket expenses","Stops premium increases after age 65","Prevents coverage from lapsing"],a:1,s:"Health Insurance"},
+{q:"Subrogation in health insurance means:",c:["The insurer substitutes a different provider","The insurer's right to recover payments made to the insured from a third party who caused the loss","The insured substitutes a family member for coverage","The policy substitutes a deductible for coinsurance"],a:1,s:"Health Insurance"},
+{q:"A point-of-service (POS) plan combines features of:",c:["HMO and indemnity insurance","PPO and indemnity insurance","HMO and PPO with care managed through a PCP but allows out-of-network use at higher cost","Medicare and Medicaid"],a:2,s:"Health Insurance"},
+{q:"Under the ACA, small group health plans must cover which of the following?",c:["Only hospitalization and surgery","The 10 essential health benefits including preventive care, mental health, and maternity care","Any benefit requested by the employer","Only benefits required by Florida state law"],a:1,s:"Health Insurance"},
+{q:"A probationary period in group health insurance is:",c:["A waiting period before an employee can enroll in the group plan","A period during which claims are denied for pre-existing conditions","A trial period during which the insurer evaluates the group","The time the insurer has to approve a claim"],a:0,s:"Health Insurance"},
+{q:"Reasonable and customary charges refer to:",c:["The amount the insured considers reasonable to pay","The benchmark amount insurers use to determine payment for services in a geographic area","The standard premium for a given age group","The fee schedule used by Medicare"],a:1,s:"Health Insurance"},
+{q:"Which of the following best describes creditable coverage?",c:["Health coverage that satisfies state minimum benefit requirements","Prior health coverage that can reduce or eliminate pre-existing condition waiting periods","Coverage provided to employees with good credit ratings","Insurance with a credit against future premiums"],a:1,s:"Health Insurance"},
+{q:"The Florida continuation of coverage law requires small employers with fewer than 20 employees to offer:",c:["36 months of continued coverage after termination","18 months of COBRA-like continuation coverage","Free coverage for 90 days after termination","Continued coverage only if the employee pays the full group rate"],a:1,s:"Health Insurance"},
+{q:"Which entity primarily regulates health insurance companies, rates, and forms in Florida?",c:["The Florida Department of Health","The Florida Office of Insurance Regulation (OIR)","The Federal Insurance Office","The Florida Department of Financial Services (DFS) exclusively"],a:1,s:"Health Insurance"},
+{q:"A capitation payment system in managed care means:",c:["The provider is paid per service rendered","The provider receives a fixed monthly payment per enrolled member regardless of services provided","The insurer caps premium increases at 5% per year","Providers are paid a percentage of premiums collected"],a:1,s:"Health Insurance"},
+{q:"Disability income insurance is designed to:",c:["Pay medical bills during a disability","Replace a portion of the insured's income if they become disabled and unable to work","Provide a lump-sum payment upon permanent disability","Cover rehabilitation costs only"],a:1,s:"Disability Income"},
+{q:"The own occupation definition of disability means:",c:["The insured is disabled if they cannot perform any occupation","The insured is considered disabled if they cannot perform the duties of their own specific occupation","Benefits are paid only if the insured is permanently disabled","The insured must be employed at the time of the claim"],a:1,s:"Disability Income"},
+{q:"The any occupation definition of disability is:",c:["More favorable to the insured","Less favorable to the insured because benefits are only paid if the insured cannot perform any occupation for which they are reasonably suited","The standard used only in Social Security claims","Used exclusively in group disability policies"],a:1,s:"Disability Income"},
+{q:"The elimination period in a disability income policy acts as a:",c:["Benefit payment period","Time deductible - the waiting period before benefits begin after a disability occurs","Pre-existing condition exclusion period","Grace period for premium payments"],a:1,s:"Disability Income"},
+{q:"Which elimination period would result in the lowest disability income premium?",c:["30-day elimination period","60-day elimination period","90-day elimination period","180-day elimination period"],a:3,s:"Disability Income"},
+{q:"The benefit period in a disability policy is:",c:["The elimination period","The length of time benefits will be paid for a covered disability","The period during which the insured can apply for benefits","The time between policy purchase and first benefit payment"],a:1,s:"Disability Income"},
+{q:"A residual disability benefit pays:",c:["Full benefits only when totally disabled","A proportional benefit when the insured can work but suffers a loss of income due to partial disability","Benefits only for permanent disabilities","Benefits only if the insured is hospitalized"],a:1,s:"Disability Income"},
+{q:"Individual disability income policies are available as:",c:["Always non-cancellable only","Always subject to annual premium increases","Non-cancellable, guaranteed renewable, or conditionally renewable","Cancelled automatically at age 65"],a:2,s:"Disability Income"},
+{q:"A non-cancellable disability policy means:",c:["The insurer can increase premiums at any time","The insurer cannot cancel the policy or raise premiums as long as premiums are paid on time","The insured cannot cancel the policy","The policy automatically renews each year with possible premium changes"],a:1,s:"Disability Income"},
+{q:"Short-term disability typically covers:",c:["2 to 5 years of disability","Disabilities lasting from a few weeks up to about 6 months","Only work-related injuries","Disabilities caused by pre-existing conditions"],a:1,s:"Disability Income"},
+{q:"Long-term disability benefits typically begin:",c:["On the first day of disability","After a short elimination period of 30 days","After a longer elimination period often 90 to 180 days","Only after short-term disability benefits are exhausted"],a:2,s:"Disability Income"},
+{q:"Social Security Disability Insurance (SSDI) defines disability as:",c:["Any condition that prevents work for 30 days or more","The inability to engage in any substantial gainful activity due to a medically determinable impairment lasting 12 months or expected to result in death","The same as the own occupation definition","Any partial disability that reduces income by 20%"],a:1,s:"Disability Income"},
+{q:"Which of the following disabilities would typically be EXCLUDED from a standard disability income policy?",c:["A broken arm from a car accident","A disability resulting from a pre-existing condition within the first 2 years of the policy","A mental health disability lasting 6 months","A disability caused by an illness not previously treated"],a:1,s:"Disability Income"},
+{q:"A cost-of-living adjustment (COLA) rider on a disability policy:",c:["Increases premiums each year automatically","Increases benefit payments during disability to keep pace with inflation","Adjusts the elimination period based on the cost of living","Refunds premiums if the insured never becomes disabled"],a:1,s:"Disability Income"},
+{q:"The recurrent disability provision states that:",c:["Benefits are paid again with a new elimination period for each new claim","If the insured returns to work and becomes disabled again from the same cause within a specified period it is treated as the same claim with no new elimination period","The insured must meet a new definition of disability for each claim","Benefits are paid only once per disability"],a:1,s:"Disability Income"},
+{q:"Workers Compensation covers:",c:["All disabilities regardless of cause","Only work-related injuries and occupational diseases","Long-term disability for non-work injuries","Medical costs only not lost wages"],a:1,s:"Disability Income"},
+{q:"A disability income policy with a guaranteed renewable provision:",c:["Guarantees both continued coverage and level premiums","Allows the insurer to increase premiums by class but cannot cancel the individual policy","Automatically renews without the insured's consent","Guarantees benefits regardless of the elimination period"],a:1,s:"Disability Income"},
+{q:"What percentage of pre-disability income do most disability income policies typically replace?",c:["100%","80 to 90%","60 to 70%","40 to 50%"],a:2,s:"Disability Income"},
+{q:"The own occupation definition of disability is most commonly found in:",c:["Group disability policies","Individual policies marketed to professionals such as physicians and attorneys","Workers Compensation policies","Social Security disability programs"],a:1,s:"Disability Income"},
+{q:"Under Florida law, how long can an insurer require proof of loss to be submitted for a disability claim?",c:["30 days after the loss","60 days after the loss","90 days after the termination of the period for which the insurer is liable","1 year after the loss"],a:2,s:"Disability Income"},
+{q:"Long-term care (LTC) insurance is designed to cover:",c:["Short-term hospital stays","Extended care needs for individuals who cannot perform activities of daily living due to chronic illness disability or cognitive impairment","Acute medical conditions requiring hospitalization","Prescription drug costs for the elderly"],a:1,s:"Long-Term Care"},
+{q:"The standard trigger for LTC benefits requires the inability to perform how many Activities of Daily Living (ADLs)?",c:["1 out of 6","2 out of 6","3 out of 6","4 out of 6"],a:1,s:"Long-Term Care"},
+{q:"The six Activities of Daily Living (ADLs) used in LTC policies are:",c:["Walking, talking, seeing, hearing, eating, and thinking","Bathing, dressing, eating, toileting, transferring, and continence","Cooking, cleaning, shopping, driving, managing money, and using the telephone","Working, exercising, socializing, sleeping, reading, and writing"],a:1,s:"Long-Term Care"},
+{q:"A cognitive impairment trigger for LTC benefits typically refers to:",c:["Any mental health condition","Severe cognitive impairment such as Alzheimer's disease that requires substantial supervision","Mild memory loss associated with normal aging","Any condition requiring psychiatric treatment"],a:1,s:"Long-Term Care"},
+{q:"The elimination period in a LTC policy is typically:",c:["7 days","30 to 90 days during which the insured pays for care before benefits begin","180 days","1 year"],a:1,s:"Long-Term Care"},
+{q:"The inflation protection benefit in a LTC policy:",c:["Protects the insurer from rising medical costs","Increases the daily benefit amount over time to keep pace with rising care costs","Guarantees premiums will not increase","Provides a refund if care costs decrease"],a:1,s:"Long-Term Care"},
+{q:"Which setting is NOT typically covered by a standard LTC insurance policy?",c:["Nursing home care","Assisted living facility","Home health care","Acute hospital care for illness"],a:3,s:"Long-Term Care"},
+{q:"Under Florida law, LTC policies must offer a nonforfeiture benefit which:",c:["Requires the insurer to continue coverage indefinitely","Provides a benefit if the policyholder lapses the policy after a period of time such as reduced paid-up coverage","Prevents the insurer from increasing premiums","Waives all premiums after age 65"],a:1,s:"Long-Term Care"},
+{q:"A partnership LTC policy in Florida allows policyholders to:",c:["Share a LTC policy with a spouse","Protect a dollar amount of assets equal to benefits received under the policy from Medicaid spend-down requirements","Purchase LTC insurance through a business partnership","Receive federal tax credits for purchasing LTC coverage"],a:1,s:"Long-Term Care"},
+{q:"The waiver of premium provision in LTC insurance:",c:["Waives premiums for the first 90 days","Waives premiums once the insured begins receiving LTC benefits","Waives premiums permanently after the policy has been in force 10 years","Waives premiums for surviving spouses"],a:1,s:"Long-Term Care"},
+{q:"Which of the following is TRUE about tax-qualified LTC policies?",c:["Benefits are always taxable as ordinary income","Premiums may be deductible as medical expenses subject to age-based limits and benefits are generally received tax-free","Tax-qualified policies cannot include inflation protection","Tax-qualified policies can only be sold to individuals over age 65"],a:1,s:"Long-Term Care"},
+{q:"The bed reservation benefit in a LTC policy:",c:["Guarantees the insured a specific bed in a nursing home","Pays to hold the insured's bed in a care facility while they are temporarily hospitalized","Provides a benefit for purchasing a hospital bed for home use","Reserves a portion of the death benefit for LTC costs"],a:1,s:"Long-Term Care"},
+{q:"How long must a LTC policy have been in force before Florida law requires the insurer to offer a nonforfeiture option?",c:["1 year","3 years","5 years","10 years"],a:1,s:"Long-Term Care"},
+{q:"Respite care benefits in a LTC policy are designed to:",c:["Provide palliative care for terminally ill patients","Provide temporary relief to informal caregivers such as family members","Pay for residential respite programs for the insured","Cover costs of moving to a new care facility"],a:1,s:"Long-Term Care"},
+{q:"Under Florida law, a LTC insurer must provide a shopper's guide to every applicant:",c:["After the policy is issued","At the time of application","Only upon request","After the free-look period ends"],a:1,s:"Long-Term Care"},
+{q:"The Florida Office of Insurance Regulation (OIR) is responsible for:",c:["Licensing insurance agents","Regulating insurance companies, rates, and policy forms","Prosecuting insurance fraud","Setting Medicare reimbursement rates"],a:1,s:"FL Regulations"},
+{q:"The Florida Department of Financial Services (DFS) is responsible for:",c:["Approving insurance company rates","Licensing insurance agents and investigating fraud","Regulating managed care organizations","Setting health insurance minimum benefits"],a:1,s:"FL Regulations"},
+{q:"A Florida life and health insurance license must be renewed every:",c:["1 year","2 years","3 years","4 years"],a:1,s:"FL Regulations"},
+{q:"How many CE hours are required for Florida life and health license renewal for agents licensed fewer than 6 years?",c:["10 hours including a 4-hour law and ethics course","24 hours including a 4-hour law and ethics update course","30 hours including a 4-hour law and ethics course","40 hours including a 10-hour ethics requirement"],a:1,s:"FL Regulations",n:"Florida Statute 626.2815 requires 24 CE hours per 2-year renewal for agents licensed less than 6 years, and 20 CE hours for those licensed 6 or more years. All must complete a 4-Hour Law and Ethics Update course."},
+{q:"Which of the following constitutes twisting in insurance?",c:["Misrepresenting policy terms to make a sale","Inducing a policyholder to cancel an existing policy and purchase a new one through misrepresentation or incomplete comparison","Charging a premium higher than the filed rate","Selling a policy without the required license"],a:1,s:"FL Regulations"},
+{q:"Churning in insurance refers to:",c:["Replacing a client's existing policy with a new one from a different insurer","An agent replacing a client's own-company policy with another own-company policy primarily to earn a new commission","Selling multiple policies to the same client","Rebating premiums to policyholders"],a:1,s:"FL Regulations"},
+{q:"Rebating is:",c:["Returning a portion of the premium to the policyholder as an inducement to purchase","Offering a discount for paying the annual premium in one lump sum","Reducing the agent's commission on a sale","Adjusting a premium after a rate change"],a:0,s:"FL Regulations"},
+{q:"Under Florida law, rebating in life and health insurance is:",c:["Legal if disclosed in writing","Legal for all commercial clients","Generally prohibited","Permitted for policies over $1 million face value"],a:2,s:"FL Regulations"},
+{q:"Misrepresentation in insurance refers to:",c:["Failing to disclose a material fact that would affect the insurer's underwriting decision","Making a false statement of material fact to induce someone to enter into an insurance contract","Charging premiums that differ from the filed rate","Using an unauthorized trade name"],a:1,s:"FL Regulations"},
+{q:"Concealment in insurance means:",c:["The deliberate withholding of material information by the insured that affects risk assessment","Hiding the insurance policy from the beneficiary","Refusing to disclose claim amounts to policyholders","An insurer's failure to disclose policy exclusions"],a:0,s:"FL Regulations"},
+{q:"The Florida Life and Health Insurance Guaranty Association provides protection when:",c:["An insurer raises premiums unlawfully","A licensed insurer becomes insolvent covering policy benefits up to statutory limits","An agent commits fraud","A claim is wrongfully denied"],a:1,s:"FL Regulations"},
+{q:"What is the maximum death benefit protection provided by the Florida Life and Health Insurance Guaranty Association per covered policy?",c:["$100,000","$300,000","$500,000","$1,000,000"],a:1,s:"FL Regulations",n:"FLAHIGA covers up to $300,000 in life insurance death benefits and up to $100,000 in cash surrender values per person per Florida Statute 631.721."},
+{q:"Under Florida law, an agent who changes a client's insurance application without the client's knowledge is guilty of:",c:["Rebating","Twisting","Misrepresentation and fraud","Churning"],a:2,s:"FL Regulations"},
+{q:"The replacement regulation in Florida requires:",c:["An agent to replace all existing policies when selling new life insurance","Full disclosure to the consumer and notification to the replacing company when a new policy replaces an existing one","The insurer to replace old forms with updated policy language","All policies to be replaced every 10 years"],a:1,s:"FL Regulations"},
+{q:"Florida's suitability requirements for annuity sales require agents to:",c:["Sell only the annuity with the highest commission","Ensure the recommended product is appropriate based on the client's financial situation needs and objectives","Recommend annuities only to individuals over age 60","Obtain prior approval from the OIR before making any annuity sale"],a:1,s:"FL Regulations"},
+{q:"The Florida Insurance Code requires all applicants for a life and health license to:",c:["Have a college degree in finance or business","Be at least 18 years old complete pre-licensing education and pass the state exam","Have 2 years of experience in financial services","Be sponsored by at least two licensed agents"],a:1,s:"FL Regulations"},
+{q:"Which of the following is an unfair claims settlement practice under Florida law?",c:["Denying a claim within 30 days of receiving proof of loss","Failing to acknowledge claim communications within a reasonable time or compelling insureds to sue to recover fair settlements","Requesting documentation to support a claim","Requesting a physical examination during a pending claim"],a:1,s:"FL Regulations"},
+{q:"Florida law requires life insurers to pay or deny claims within what timeframe after receiving satisfactory proof of death?",c:["10 days","15 days","30 days","90 days"],a:2,s:"FL Regulations"},
+{q:"Which of the following is required when an insurance producer's address changes?",c:["Notify the DFS within 30 days","Notify the OIR within 60 days","Notify the appointing insurer only","No notification is required"],a:0,s:"FL Regulations"},
+{q:"Under Florida law, an insurer must provide a written explanation for a claim denial within:",c:["10 days","20 days","30 days","45 days"],a:2,s:"FL Regulations"},
+{q:"An insurance company that transacts business without a Certificate of Authority in Florida is considered:",c:["An admitted carrier","A surplus lines carrier","An unauthorized insurer","A domestic company"],a:2,s:"FL Regulations"},
+{q:"The Florida sliding violation occurs when an agent:",c:["Moves a client's policy to a lower-premium plan without consent","Adds coverage or charges for products the insured did not request and did not knowingly agree to purchase","Switches a client to a competitor's policy","Reduces the face value of a policy without the client's knowledge"],a:1,s:"FL Regulations"},
+{q:"Florida requires that variable annuities can only be sold by agents who hold:",c:["A life insurance license only","A life insurance license AND a Series 6 or Series 7 securities license registered with FINRA","A health insurance license and a financial advisor designation","An annuity-specific endorsement only"],a:1,s:"FL Regulations"},
+{q:"Under the Florida Insurance Code, an agent acting as a fiduciary is required to:",c:["Place the insurer's interests above all others","Act in the client's best interest when handling premium funds and policy matters","Disclose all commissions earned on every transaction","Invest client premiums on their behalf"],a:1,s:"FL Regulations"},
+{q:"Which of the following must a Florida-licensed agent do when their appointment with an insurer is terminated?",c:["Immediately surrender their license to the DFS","Stop transacting business for that insurer and may continue with other appointing insurers","Apply for a new license before selling for another insurer","Notify all existing policyholders in writing within 10 days"],a:1,s:"FL Regulations"}
+];
+</script>
+</body>
+</html>
