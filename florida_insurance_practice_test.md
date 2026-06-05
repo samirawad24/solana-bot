@@ -56,6 +56,8 @@ Passing score on the actual exam: 70%
 - C) 21 days
 - D) 30 days
 
+> *Note: Florida Statute 627.4555 requires a minimum 14-day free-look period for life insurance (20 days if delivered by mail).*
+
 **8.** Which rider allows a policyholder to purchase additional insurance without a medical exam?
 
 - A) Accidental Death Benefit rider
@@ -189,12 +191,14 @@ Passing score on the actual exam: 70%
 - C) Increases the premium retroactively
 - D) Waives future premiums
 
-**27.** Under Florida law, the grace period for life insurance premium payments is:
+**27.** Under Florida law, the minimum grace period for life insurance premium payments is:
 
 - A) 10 days
 - B) 21 days
-- C) 31 days
+- C) 30 days
 - D) 60 days
+
+> *Note: Florida Statute 627.453 requires a grace period of not less than 30 days for individual life insurance policies.*
 
 **28.** A "reduced paid-up" nonforfeiture option provides:
 
@@ -360,6 +364,8 @@ Passing score on the actual exam: 70%
 - B) 14 days
 - C) 21 days
 - D) 30 days
+
+> *Note: Florida requires a minimum 21-day free-look period for annuity contracts.*
 
 ---
 
@@ -923,12 +929,14 @@ Passing score on the actual exam: 70%
 - C) 3 years
 - D) 4 years
 
-**129.** How many hours of continuing education (CE) are required for Florida life and health license renewal?
+**129.** How many hours of continuing education (CE) are required for Florida life and health license renewal (agents licensed fewer than 6 years)?
 
-- A) 10 hours (including 5 hours of ethics)
-- B) 24 hours (including 5 hours of ethics)
-- C) 30 hours (including 10 hours of ethics)
-- D) 40 hours (including 10 hours of ethics)
+- A) 10 hours (including a 4-hour law and ethics course)
+- B) 24 hours (including a 4-hour law and ethics update course)
+- C) 30 hours (including a 4-hour law and ethics course)
+- D) 40 hours (including a 10-hour ethics requirement)
+
+> *Note: Florida requires 24 CE hours per 2-year renewal cycle for agents licensed fewer than 6 years, and 20 CE hours for those licensed 6+ years. All agents must complete a state-approved 4-Hour Law and Ethics Update course (Florida Statute 626.2815).*
 
 **130.** Which of the following constitutes "twisting" in insurance?
 
@@ -985,6 +993,8 @@ Passing score on the actual exam: 70%
 - B) $300,000
 - C) $500,000
 - D) $1,000,000
+
+> *Note: FLAHIGA covers up to $300,000 in life insurance death benefits and up to $100,000 in cash surrender values per person (Florida Statute 631.721).*
 
 **138.** Under Florida law, an agent who changes a client's insurance application without the client's knowledge is guilty of:
 
@@ -1089,7 +1099,7 @@ Passing score on the actual exam: 70%
 | 4 | C | 34 | B | 64 | B | 94 | B | 124 | B |
 | 5 | B | 35 | C | 65 | B | 95 | D | 125 | B |
 | 6 | C | 36 | C | 66 | B | 96 | B | 126 | B |
-| 7 | D | 37 | B | 67 | C | 97 | B | 127 | B |
+| 7 | B | 37 | B | 67 | C | 97 | B | 127 | B |
 | 8 | C | 38 | C | 68 | B | 98 | C | 128 | B |
 | 9 | B | 39 | B | 69 | B | 99 | B | 129 | B |
 | 10 | B | 40 | B | 70 | B | 100 | B | 130 | B |
@@ -1099,10 +1109,10 @@ Passing score on the actual exam: 70%
 | 14 | B | 44 | B | 74 | B | 104 | B | 134 | B |
 | 15 | D | 45 | A | 75 | B | 105 | B | 135 | A |
 | 16 | B | 46 | C | 76 | C | 106 | B | 136 | B |
-| 17 | B | 47 | B | 77 | B | 107 | B | 137 | C |
+| 17 | B | 47 | B | 77 | B | 107 | B | 137 | B |
 | 18 | B | 48 | C | 78 | C | 108 | C | 138 | C |
 | 19 | B | 49 | B | 79 | B | 109 | B | 139 | B |
-| 20 | B | 50 | D | 80 | C | 110 | C | 140 | B |
+| 20 | B | 50 | C | 80 | C | 110 | C | 140 | B |
 | 21 | B | 51 | B | 81 | B | 111 | B | 141 | B |
 | 22 | B | 52 | C | 82 | B | 112 | B | 142 | B |
 | 23 | B | 53 | B | 83 | C | 113 | B | 143 | C |
