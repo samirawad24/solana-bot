@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>FL Insurance Exam</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f1f5f9;min-height:100vh;color:#1e293b}
 .screen{display:none}
 .screen.active{display:block}
@@ -19,7 +19,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ic{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .ic-num{font-size:24px;font-weight:800;color:#2563eb}
 .ic-lbl{font-size:10px;color:#94a3b8;margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
-.btn-start{background:#2563eb;color:#fff;border:none;border-radius:14px;padding:16px;font-size:17px;font-weight:700;cursor:pointer;width:100%;max-width:340px;-webkit-appearance:none}
+.btn-start{background:#2563eb;color:#fff;border:none;border-radius:14px;padding:16px;font-size:17px;font-weight:700;cursor:pointer;width:100%;max-width:340px;-webkit-appearance:none;touch-action:manipulation;user-select:none;-webkit-user-select:none}
 
 /* HEADER */
 #quiz-header{background:#fff;padding:10px 14px;position:sticky;top:0;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.08)}
@@ -212,21 +212,25 @@ function barColor(p) {
 }
 
 function startQuiz() {
-  clearInterval(timerID);
-  elapsed = 0;
-  qs = shuffle(ALL_Q);
-  cur = 0;
-  sel = null;
-  confirmed = false;
-  answers = [];
-  for (var i = 0; i < qs.length; i++) answers.push(null);
-  show('quiz-screen');
-  timerID = setInterval(function() {
-    elapsed++;
-    var el = document.getElementById('tmr');
-    if (el) el.textContent = fmt(elapsed);
-  }, 1000);
-  loadQuestion();
+  try {
+    clearInterval(timerID);
+    elapsed = 0;
+    qs = shuffle(ALL_Q);
+    cur = 0;
+    sel = null;
+    confirmed = false;
+    answers = [];
+    for (var i = 0; i < qs.length; i++) answers.push(null);
+    show('quiz-screen');
+    timerID = setInterval(function() {
+      elapsed++;
+      var el = document.getElementById('tmr');
+      if (el) el.textContent = fmt(elapsed);
+    }, 1000);
+    loadQuestion();
+  } catch(err) {
+    alert('Error starting quiz: ' + err.message);
+  }
 }
 
 function loadQuestion() {
@@ -402,30 +406,38 @@ function backToResults() {
   show('results-screen');
 }
 
-// Wire up events
-document.getElementById('btn-start').addEventListener('click', startQuiz);
-document.getElementById('btn-submit').addEventListener('click', submitAnswer);
-document.getElementById('btn-next').addEventListener('click', nextQ);
-document.getElementById('btn-review').addEventListener('click', showReview);
-document.getElementById('btn-retake').addEventListener('click', retake);
-document.getElementById('btn-retake2').addEventListener('click', retake);
-document.getElementById('btn-back').addEventListener('click', backToResults);
-document.getElementById('choices').addEventListener('click', function(e) {
-  var btn = e.target;
-  while (btn && btn !== this) {
-    if (btn.className && btn.className.indexOf('choice-btn') !== -1) {
-      pickAnswer(parseInt(btn.getAttribute('data-idx')));
-      return;
-    }
-    btn = btn.parentElement;
-  }
-});
+function wireEvents() {
+  document.getElementById('quiz-screen').style.display = 'none';
+  document.getElementById('results-screen').style.display = 'none';
+  document.getElementById('review-screen').style.display = 'none';
 
-// Show start screen (it's shown by default via CSS)
-// Hide quiz/results/review screens
-document.getElementById('quiz-screen').style.display = 'none';
-document.getElementById('results-screen').style.display = 'none';
-document.getElementById('review-screen').style.display = 'none';
+  var btnStart = document.getElementById('btn-start');
+  btnStart.addEventListener('click', startQuiz);
+  btnStart.addEventListener('touchend', function(e){ e.preventDefault(); startQuiz(); });
+
+  document.getElementById('btn-submit').addEventListener('click', submitAnswer);
+  document.getElementById('btn-next').addEventListener('click', nextQ);
+  document.getElementById('btn-review').addEventListener('click', showReview);
+  document.getElementById('btn-retake').addEventListener('click', retake);
+  document.getElementById('btn-retake2').addEventListener('click', retake);
+  document.getElementById('btn-back').addEventListener('click', backToResults);
+  document.getElementById('choices').addEventListener('click', function(e) {
+    var btn = e.target;
+    while (btn && btn !== this) {
+      if (btn.className && btn.className.indexOf('choice-btn') !== -1) {
+        pickAnswer(parseInt(btn.getAttribute('data-idx')));
+        return;
+      }
+      btn = btn.parentElement;
+    }
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', wireEvents);
+} else {
+  wireEvents();
+}
 
 // ---- ALL 150 QUESTIONS ----
 var ALL_Q = [
