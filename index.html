@@ -53,7 +53,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #fb-note{margin-top:7px;font-size:13px;font-style:italic;opacity:.8}
 
 /* ACTION BTNS */
-#btn-submit{display:none;background:#2563eb;color:#fff;border:none;border-radius:13px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;width:calc(100% - 24px);margin:10px 12px 0;-webkit-appearance:none;touch-action:manipulation}
 #nav-row{display:none;gap:9px;margin:10px 12px 0}
 #btn-prev{flex:1;min-width:0;background:#f1f5f9;color:#475569;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;-webkit-appearance:none;touch-action:manipulation}
 #btn-next{flex:2;min-width:0;background:#2563eb;color:#fff;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;-webkit-appearance:none;touch-action:manipulation}
@@ -140,7 +139,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span id="fb-main"></span>
       <div id="fb-note"></div>
     </div>
-    <button id="btn-submit">Submit Answer</button>
     <div id="nav-row" style="display:none">
       <button id="btn-prev">&larr; Previous</button>
       <button id="btn-next">Next &rarr;</button>
@@ -295,7 +293,6 @@ function loadQuestion() {
     fb.className = '';
   }
 
-  document.getElementById('btn-submit').style.display = 'none';
   updateNavRow();
 }
 
@@ -309,15 +306,6 @@ function prevQ() {
 function pickAnswer(idx) {
   if (confirmed) return;
   sel = idx;
-  var btns = document.getElementById('choices').querySelectorAll('.choice-btn');
-  for (var i = 0; i < btns.length; i++) {
-    btns[i].className = 'choice-btn' + (i === idx ? ' sel' : '');
-  }
-  document.getElementById('btn-submit').style.display = '';
-}
-
-function submitAnswer() {
-  if (sel === null) return;
   confirmed = true;
   answers[cur] = sel;
   var q = qs[cur];
@@ -331,15 +319,13 @@ function submitAnswer() {
   }
 
   var fb = document.getElementById('feedback');
-  var fbMain = document.getElementById('fb-main');
-  var fbNote = document.getElementById('fb-note');
   fb.style.display = '';
   fb.className = ok ? 'ok' : 'bad';
-  fbMain.textContent = ok ? 'Correct!' : 'Incorrect. Correct answer: ' + LETTERS[q.a] + ') ' + q.c[q.a];
+  document.getElementById('fb-main').textContent = ok ? 'Correct!' : 'Incorrect. Correct answer: ' + LETTERS[q.a] + ') ' + q.c[q.a];
+  var fbNote = document.getElementById('fb-note');
   fbNote.textContent = q.n ? 'Note: ' + q.n : '';
   fbNote.style.display = q.n ? '' : 'none';
 
-  document.getElementById('btn-submit').style.display = 'none';
   document.getElementById('btn-next').textContent = (cur === qs.length - 1) ? 'See Results' : 'Next →';
   updateNavRow();
 }
@@ -458,7 +444,6 @@ function wireEvents() {
   btnStart.addEventListener('click', startQuiz);
   btnStart.addEventListener('touchend', function(e){ e.preventDefault(); startQuiz(); });
 
-  document.getElementById('btn-submit').addEventListener('click', submitAnswer);
   document.getElementById('btn-prev').addEventListener('click', prevQ);
   document.getElementById('btn-next').addEventListener('click', nextQ);
   document.getElementById('btn-review').addEventListener('click', showReview);
