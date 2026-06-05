@@ -88,6 +88,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-dark{background:#1e293b;color:#fff;border:none;border-radius:13px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;width:100%;-webkit-appearance:none}
 .btn-blue{background:#2563eb;color:#fff;border:none;border-radius:13px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;width:100%;-webkit-appearance:none}
 
+/* FLASHCARDS */
+#flashcard-screen{max-width:640px;margin:0 auto;padding:14px 12px;display:none}
+.fc-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.fc-ctr{font-size:14px;font-weight:700;color:#475569}
+#fc-card{background:#fff;border-radius:16px;padding:22px;min-height:260px;box-shadow:0 2px 10px rgba(0,0,0,.1);cursor:pointer;display:flex;flex-direction:column;margin-bottom:12px;border:3px solid #e2e8f0;transition:border-color .2s,background .2s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#fc-card.flipped{border-color:#16a34a;background:#f0fdf4}
+.fc-topic{display:inline-block;background:#eff6ff;color:#2563eb;font-size:10px;font-weight:700;padding:3px 9px;border-radius:99px;margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px}
+.fc-topic.ans{background:#dcfce7;color:#16a34a}
+.fc-q{font-size:16px;font-weight:500;line-height:1.6;flex:1;color:#1e293b;margin:0}
+.fc-hint{font-size:12px;color:#94a3b8;text-align:center;margin-top:14px;margin-bottom:0}
+.fc-ans-text{font-size:17px;font-weight:700;color:#15803d;line-height:1.5;flex:1;margin:0}
+.fc-statute{margin-top:12px;font-size:13px;color:#64748b;line-height:1.5;padding:9px 11px;background:#fff;border-radius:8px;border:1px solid #d1fae5}
+.fc-nav{display:flex;gap:9px}
+.fc-nav button{flex:1;background:#f1f5f9;color:#475569;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;-webkit-appearance:none;touch-action:manipulation}
+.fc-nav button.fc-primary{background:#2563eb;color:#fff}
+.btn-green{background:#16a34a;color:#fff;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;width:100%;-webkit-appearance:none;touch-action:manipulation}
+.btn-purple{background:#7c3aed;color:#fff;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;width:100%;-webkit-appearance:none;touch-action:manipulation}
+#study-btns{flex-direction:column;gap:9px}
+
 /* REVIEW */
 #review-screen{max-width:640px;margin:0 auto;padding:14px 12px;display:none}
 .rev-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px}
@@ -117,7 +136,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="ic"><div class="ic-num">&#8734;</div><div class="ic-lbl">Randomized</div></div>
   </div>
   <button class="btn-start" id="btn-start">Start Practice Exam</button>
-  <p style="font-size:11px;color:#94a3b8;margin-top:14px">v5 &bull; Tap answer to continue &bull; 150 questions</p>
+  <p style="font-size:11px;color:#94a3b8;margin-top:14px">v6 &bull; Mini Quiz &amp; Flash Cards &bull; 150 questions</p>
 </div>
 
 <!-- QUIZ SCREEN -->
@@ -169,7 +188,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
   <div class="res-btns">
     <button class="btn-dark" id="btn-review" style="display:none">Review Missed Questions</button>
+    <div id="study-btns" style="display:none">
+      <button class="btn-green" id="btn-mini-quiz">&#9654; Mini Quiz — Practice Missed Questions</button>
+      <button class="btn-purple" id="btn-flashcards">&#9830; Flash Cards — Study Missed Questions</button>
+    </div>
     <button class="btn-blue" id="btn-retake">New Randomized Test</button>
+  </div>
+</div>
+
+<!-- FLASHCARD SCREEN -->
+<div id="flashcard-screen">
+  <div class="fc-hdr">
+    <button class="btn-back" id="fc-back-btn">&larr; Results</button>
+    <span id="fc-counter" class="fc-ctr">Card 1 of 1</span>
+  </div>
+  <div id="fc-card">
+    <div id="fc-front">
+      <div id="fc-topic" class="fc-topic">Topic</div>
+      <p id="fc-question" class="fc-q"></p>
+      <p id="fc-hint" class="fc-hint">&#128161; Tap card to reveal answer</p>
+    </div>
+    <div id="fc-back-content" style="display:none">
+      <div class="fc-topic ans">Correct Answer</div>
+      <p id="fc-answer" class="fc-ans-text"></p>
+      <div id="fc-statute" class="fc-statute" style="display:none"></div>
+    </div>
+  </div>
+  <div class="fc-nav">
+    <button id="fc-prev-btn" style="display:none">&larr; Prev</button>
+    <button id="fc-next-btn" class="fc-primary">Next &rarr;</button>
   </div>
 </div>
 
@@ -192,9 +239,13 @@ var cur = 0;
 var sel = null;
 var confirmed = false;
 var answers = [];
+var isMiniQuiz = false;
+var fcIdx = 0;
+var fcFlipped = false;
+var fcQuestions = [];
 
 function show(id) {
-  var ids = ['start-screen','quiz-screen','results-screen','review-screen'];
+  var ids = ['start-screen','quiz-screen','results-screen','review-screen','flashcard-screen'];
   for (var i = 0; i < ids.length; i++) {
     document.getElementById(ids[i]).style.display = ids[i] === id ? (id === 'start-screen' ? 'flex' : 'block') : 'none';
   }
@@ -399,6 +450,15 @@ function showResults() {
   reviewBtn.style.display = missed > 0 ? '' : 'none';
   reviewBtn.textContent = 'Review ' + missed + ' Missed Question' + (missed !== 1 ? 's' : '');
 
+  var studyBtns = document.getElementById('study-btns');
+  studyBtns.style.display = (!isMiniQuiz && missed > 0) ? 'flex' : 'none';
+
+  document.getElementById('btn-retake').textContent = isMiniQuiz ? 'New Full Test (150 Questions)' : 'New Randomized Test';
+
+  if (isMiniQuiz) {
+    document.getElementById('res-sub').textContent = missed === 0 ? 'You got them all! Great work.' : missed + ' still need review — try again!';
+  }
+
   show('results-screen');
 }
 
@@ -436,7 +496,91 @@ function showReview() {
 
 function retake() {
   clearInterval(timerID);
+  isMiniQuiz = false;
   show('start-screen');
+}
+
+function startMiniQuiz() {
+  var missed = [];
+  for (var i = 0; i < qs.length; i++) {
+    if (answers[i] !== qs[i].a) missed.push(qs[i]);
+  }
+  if (missed.length === 0) return;
+  isMiniQuiz = true;
+  clearInterval(timerID);
+  elapsed = 0;
+  qs = shuffle(missed);
+  for (var i = 0; i < qs.length; i++) {
+    var q = qs[i];
+    var idx = [0,1,2,3];
+    for (var j = 3; j > 0; j--) { var k = Math.floor(Math.random()*(j+1)); var t=idx[j];idx[j]=idx[k];idx[k]=t; }
+    var nc = [], na = 0;
+    for (var j = 0; j < 4; j++) { nc.push(q.c[idx[j]]); if (idx[j]===q.a) na=j; }
+    qs[i] = {q:q.q, c:nc, a:na, s:q.s, n:q.n};
+  }
+  cur = 0; sel = null; confirmed = false; answers = [];
+  for (var i = 0; i < qs.length; i++) answers.push(null);
+  show('quiz-screen');
+  timerID = setInterval(function() {
+    elapsed++;
+    var el = document.getElementById('tmr');
+    if (el) el.textContent = fmt(elapsed);
+  }, 1000);
+  loadQuestion();
+}
+
+function showFlashcards() {
+  fcQuestions = [];
+  for (var i = 0; i < qs.length; i++) {
+    if (answers[i] !== qs[i].a) fcQuestions.push(qs[i]);
+  }
+  if (fcQuestions.length === 0) return;
+  fcIdx = 0;
+  fcLoad();
+  show('flashcard-screen');
+}
+
+function fcLoad() {
+  var q = fcQuestions[fcIdx];
+  fcFlipped = false;
+  document.getElementById('fc-counter').textContent = 'Card ' + (fcIdx + 1) + ' of ' + fcQuestions.length;
+  document.getElementById('fc-topic').textContent = q.s;
+  document.getElementById('fc-topic').className = 'fc-topic';
+  document.getElementById('fc-question').textContent = q.q;
+  document.getElementById('fc-answer').textContent = LETTERS[q.a] + ') ' + q.c[q.a];
+  var st = document.getElementById('fc-statute');
+  if (q.n) { st.textContent = q.n; st.style.display = ''; }
+  else { st.style.display = 'none'; }
+  document.getElementById('fc-card').className = '';
+  document.getElementById('fc-front').style.display = '';
+  document.getElementById('fc-back-content').style.display = 'none';
+  document.getElementById('fc-hint').style.display = '';
+  document.getElementById('fc-prev-btn').style.display = fcIdx > 0 ? '' : 'none';
+  var nxt = document.getElementById('fc-next-btn');
+  nxt.textContent = (fcIdx === fcQuestions.length - 1) ? 'Done → Results' : 'Next →';
+  nxt.className = 'fc-primary';
+}
+
+function fcFlipCard() {
+  fcFlipped = !fcFlipped;
+  if (fcFlipped) {
+    document.getElementById('fc-card').className = 'flipped';
+    document.getElementById('fc-front').style.display = 'none';
+    document.getElementById('fc-back-content').style.display = '';
+  } else {
+    document.getElementById('fc-card').className = '';
+    document.getElementById('fc-front').style.display = '';
+    document.getElementById('fc-back-content').style.display = 'none';
+  }
+}
+
+function fcNext() {
+  if (fcIdx < fcQuestions.length - 1) { fcIdx++; fcLoad(); }
+  else { show('results-screen'); }
+}
+
+function fcPrev() {
+  if (fcIdx > 0) { fcIdx--; fcLoad(); }
 }
 
 function backToResults() {
@@ -455,9 +599,16 @@ function wireEvents() {
   document.getElementById('btn-prev').addEventListener('click', prevQ);
   document.getElementById('btn-next').addEventListener('click', nextQ);
   document.getElementById('btn-review').addEventListener('click', showReview);
+  document.getElementById('btn-mini-quiz').addEventListener('click', startMiniQuiz);
+  document.getElementById('btn-flashcards').addEventListener('click', showFlashcards);
   document.getElementById('btn-retake').addEventListener('click', retake);
   document.getElementById('btn-retake2').addEventListener('click', retake);
   document.getElementById('btn-back').addEventListener('click', backToResults);
+  document.getElementById('fc-back-btn').addEventListener('click', function() { show('results-screen'); });
+  document.getElementById('fc-card').addEventListener('click', fcFlipCard);
+  document.getElementById('fc-prev-btn').addEventListener('click', fcPrev);
+  document.getElementById('fc-next-btn').addEventListener('click', fcNext);
+  document.getElementById('flashcard-screen').style.display = 'none';
   document.getElementById('choices').addEventListener('click', function(e) {
     var btn = e.target;
     while (btn && btn !== this) {
