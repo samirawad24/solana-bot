@@ -62,11 +62,13 @@ Then open the local URL it prints (the `/api/coach` function runs locally too).
 
 ---
 
-## Voice support
+## Voice support — you can talk to it on every device
 
-- **Android Chrome and desktop Chrome/Edge:** full hands-free call — the prospect talks, you talk back.
-- **iPhone/iPad Safari:** you'll **hear** the prospect (text-to-speech works), but Safari doesn't support in-browser speech-to-text, so you reply by **typing**. For the full spoken experience on iPhone, use Chrome on Android or a desktop browser.
+- **Android Chrome / desktop Chrome / Edge:** fully hands-free. Tap the mic, the prospect talks, you talk back, and the mic re-opens automatically after each prospect line.
+- **iPhone / iPad (Safari):** the prospect talks out loud, and **you talk back using Apple's built-in dictation**. Tap the 🎤 button in the app to bring up the keyboard, press the **microphone key on the keyboard**, and just speak — your words land in the box, then tap ↑ to send. (Safari doesn't expose a hands-free speech API to web apps, so this on-device dictation is the way to talk on iPhone — it's free, private, and accurate.)
 - Toggle the prospect's voice on/off in Settings.
+
+> iOS note: Safari only allows the prospect's voice to start after your first tap, so the spoken pitch begins once you tap into a section or the Full Call.
 
 ---
 

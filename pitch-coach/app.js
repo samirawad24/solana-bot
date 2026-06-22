@@ -63,11 +63,25 @@
     u.rate = 0.98; u.pitch = 1.0;
     u.onend = function () { var f = onSpeakEnd; onSpeakEnd = null; if (f) f(); };
     u.onerror = function () { var f = onSpeakEnd; onSpeakEnd = null; if (f) f(); };
+    try { synth.resume(); } catch (e) {} // iOS sometimes leaves synth paused
     synth.speak(u);
   }
   function stopSpeak() { try { if (synth) synth.cancel(); } catch (e) {} onSpeakEnd = null; }
 
+  // iOS Safari blocks speech until the first utterance is fired inside a user
+  // gesture. Prime it on the first tap so the prospect can actually talk.
+  var audioUnlocked = false;
+  function unlockAudio() {
+    if (audioUnlocked || !synth) return;
+    try { var u = new SpeechSynthesisUtterance(" "); u.volume = 0; synth.speak(u); audioUnlocked = true; } catch (e) {}
+  }
+
   // ---------- voice: speech recognition (you talk) ----------
+  // iPhone/iPad Safari does NOT support in-browser speech recognition, so on
+  // iOS we fall back to Apple's built-in keyboard dictation (the 🎤 on the
+  // keyboard) — on-device, free, and accurate.
+  var IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   var recog = null, listening = false, recogTarget = null;
   if (SR) {
@@ -196,12 +210,15 @@
   // ========================================================================
   var call = null;
   function startCall(opts) {
+    unlockAudio(); // we're inside the tap gesture — lets the prospect speak on iOS
     if (!S.agentName) { S.agentName = SCRIPT.agentNameDefault; saveSettings(); }
     var sec = opts.mode === "section" ? SCRIPT.sections.find(function (s) { return s.id === opts.sectionId; }) : null;
     call = { mode: opts.mode, sectionId: opts.sectionId || null, section: sec, history: [], busy: false, draft: "", ended: false };
 
     setTitle(sec ? sec.title : "Full Call", true);
-    footerNote.textContent = recog ? "Tap the mic and speak your line." : "Type your line (voice input isn't supported in this browser).";
+    footerNote.textContent = recog
+      ? "Tap the mic and speak your line."
+      : (IS_IOS ? "Tap 🎤 to open your keyboard, then press the keyboard's mic to talk." : "Type your line.");
 
     var hint = sec
       ? '<button class="btn ghost" id="hintBtn" style="flex:0 0 auto">💡 Hint</button>'
@@ -229,8 +246,10 @@
       hint +
       "</div>" +
       '<div class="composer">' +
-      (recog ? '<button class="mic" id="mic" aria-label="Hold to talk">🎙</button>' : "") +
-      '<textarea id="ta" placeholder="' + (recog ? "Speak or type your line…" : "Type your line…") + '" rows="1"></textarea>' +
+      (recog
+        ? '<button class="mic" id="mic" aria-label="Tap to talk">🎙</button>'
+        : (IS_IOS ? '<button class="mic" id="dictate" aria-label="Talk">🎤</button>' : "")) +
+      '<textarea id="ta" placeholder="' + (recog ? "Speak or type your line…" : (IS_IOS ? "Tap 🎤, then your keyboard mic, and talk…" : "Type your line…")) + '" rows="1"></textarea>' +
       '<button class="btn primary send" id="send" aria-label="Send">↑</button>' +
       "</div>" +
       "</div>"
@@ -243,6 +262,7 @@
     dock.querySelector("#endBtn").addEventListener("click", endAndScore);
     if (sec) dock.querySelector("#hintBtn").addEventListener("click", function () { showHint(sec); });
     if (recog) setupMic(dock.querySelector("#mic"), ta);
+    else if (IS_IOS) setupDictate(dock.querySelector("#dictate"), ta);
 
     backBtn.onclick = function () { teardownCall(); renderHome(); };
 
@@ -284,6 +304,21 @@
       mic.classList.add("listening");
       setStatus("Listening…", false);
       startListening(target);
+    });
+  }
+
+  // iPhone: no web speech recognition, so the "talk" button just opens the
+  // keyboard and focuses the box. The rep taps the keyboard's 🎤 to dictate.
+  function setupDictate(btn, ta) {
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      stopSpeak();
+      ta.focus();
+      var v = ta.value; ta.value = ""; ta.value = v; // move cursor to end
+      if (!localStorage.getItem("fexDictHint")) {
+        localStorage.setItem("fexDictHint", "1");
+        addMsg("sys", "On iPhone: press the 🎤 on your keyboard and just talk — your words appear in the box. Tap ↑ to send.");
+      }
     });
   }
 
