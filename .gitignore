@@ -16,3 +16,7 @@ env/
 reports/
 .pytest_cache/
 .mypy_cache/
+
+# Node / Netlify (pitch-coach app)
+node_modules/
+.netlify/

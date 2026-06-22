@@ -1,0 +1,13 @@
+{
+  "name": "fex-pitch-coach",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Voice-first AI training app for the final expense (FEX) sales pitch.",
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0"
+  }
+}

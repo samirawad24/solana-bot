@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d1b2a" />
+  <title>FEX Pitch Coach</title>
+  <meta name="description" content="Practice and master your final expense sales pitch. Learn, memorize, drill objections, and run full AI roleplay calls with a 0-100% score." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="assets/icon.svg" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- HOME -->
+    <header class="topbar">
+      <button class="iconbtn" id="backBtn" hidden aria-label="Back">‹</button>
+      <h1 class="brand" id="title">FEX Pitch Coach</h1>
+      <button class="iconbtn" id="settingsBtn" aria-label="Settings">⚙</button>
+    </header>
+
+    <main id="view"><!-- screens render here --></main>
+
+    <footer class="footer" id="footer">
+      <span id="footerNote">Set your name, then pick a mode to start training.</span>
+    </footer>
+  </div>
+
+  <!-- Settings dialog -->
+  <dialog id="settingsDialog">
+    <form method="dialog" class="sheet">
+      <h2>Settings</h2>
+      <label class="field">
+        <span>Your name (the agent)</span>
+        <input id="agentName" type="text" placeholder="Nina" autocomplete="off" />
+      </label>
+      <label class="field">
+        <span>Prospect difficulty</span>
+        <select id="difficulty">
+          <option value="easy">Easy — warm and agreeable</option>
+          <option value="medium" selected>Medium — realistic, some pushback</option>
+          <option value="hard">Hard — skeptical, lots of objections</option>
+        </select>
+      </label>
+      <label class="field check">
+        <input id="voiceOut" type="checkbox" checked />
+        <span>Speak the prospect's lines out loud</span>
+      </label>
+      <details class="advanced">
+        <summary>Advanced: direct API key</summary>
+        <p class="hint">
+          Leave this empty when the app is deployed (the server holds the key).
+          Only paste a key here if you're testing the static files without a backend.
+          Stored only in this browser.
+        </p>
+        <label class="field">
+          <span>Anthropic API key (optional)</span>
+          <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off" />
+        </label>
+      </details>
+      <div class="row">
+        <button value="cancel" class="btn ghost">Close</button>
+        <button value="save" class="btn primary" id="saveSettings">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="data/script.js"></script>
+  <script src="data/prompt.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

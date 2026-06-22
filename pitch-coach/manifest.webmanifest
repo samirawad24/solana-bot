@@ -1,0 +1,13 @@
+{
+  "name": "FEX Pitch Coach",
+  "short_name": "Pitch Coach",
+  "description": "Practice your final expense sales pitch by talking to an AI prospect.",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1b2a",
+  "theme_color": "#0d1b2a",
+  "icons": [
+    { "src": "assets/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

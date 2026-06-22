@@ -1,0 +1,14 @@
+# Netlify config for the FEX Pitch Coach app (lives in pitch-coach/).
+[build]
+  base = "pitch-coach"
+  publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Pretty API path -> serverless function
+[[redirects]]
+  from = "/api/coach"
+  to = "/.netlify/functions/coach"
+  status = 200
