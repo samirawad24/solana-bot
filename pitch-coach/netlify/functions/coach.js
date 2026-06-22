@@ -1,9 +1,12 @@
 /* Netlify Function: /api/coach
  * Proxies the browser to the Claude API so the Anthropic key stays server-side.
- * Once deployed with ANTHROPIC_API_KEY set, anyone with the app URL can train —
- * no key needed on their device.
+ * Uses the runtime's native fetch (Node 18+) — no npm dependencies, so the
+ * deploy can't fail on an install step.
+ *
+ * Once deployed with ANTHROPIC_API_KEY set, anyone with the app URL can train
+ * with no key on their device. Without that env var, the app still works via
+ * the "bring your own key" option in Settings (which calls Claude directly).
  */
-const Anthropic = require("@anthropic-ai/sdk");
 const PROMPT = require("../../data/prompt.js");
 
 const MODEL = "claude-opus-4-8";
@@ -20,7 +23,11 @@ exports.handler = async function (event) {
   if (event.httpMethod !== "POST") return { statusCode: 405, headers: CORS, body: '{"error":"Use POST"}' };
 
   if (!process.env.ANTHROPIC_API_KEY) {
-    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: "ANTHROPIC_API_KEY is not set on the server. Add it in Netlify → Site settings → Environment variables." }) };
+    return {
+      statusCode: 500,
+      headers: CORS,
+      body: JSON.stringify({ error: "No server API key set. Add ANTHROPIC_API_KEY in Netlify env vars, or paste your own key in Settings → Advanced." }),
+    };
   }
 
   let payload;
@@ -28,19 +35,32 @@ exports.handler = async function (event) {
   catch (e) { return { statusCode: 400, headers: CORS, body: '{"error":"Invalid JSON"}' }; }
 
   try {
-    const client = new Anthropic(); // reads ANTHROPIC_API_KEY from env
     const built = PROMPT.build(payload);
-
-    const req = {
+    const reqBody = {
       model: MODEL,
       max_tokens: payload.type === "score" ? 1500 : 400,
       system: built.system,
       messages: built.messages,
     };
-    if (built.output_config) req.output_config = built.output_config;
+    if (built.output_config) reqBody.output_config = built.output_config;
 
-    const resp = await client.messages.create(req);
-    const text = (resp.content || [])
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(reqBody),
+    });
+
+    const data = await r.json();
+    if (!r.ok) {
+      const msg = (data && data.error && data.error.message) ? data.error.message : "Claude API error";
+      return { statusCode: r.status, headers: CORS, body: JSON.stringify({ error: msg }) };
+    }
+
+    const text = (data.content || [])
       .filter((b) => b.type === "text")
       .map((b) => b.text)
       .join("");
@@ -49,7 +69,6 @@ exports.handler = async function (event) {
     return { statusCode: 200, headers: CORS, body: JSON.stringify(result) };
   } catch (err) {
     const msg = (err && err.message) ? err.message : "Unknown error";
-    const status = (err && err.status) || 500;
-    return { statusCode: status, headers: CORS, body: JSON.stringify({ error: msg }) };
+    return { statusCode: 500, headers: CORS, body: JSON.stringify({ error: msg }) };
   }
 };
