@@ -35,7 +35,8 @@ You'll need a free [Netlify](https://www.netlify.com) account and an [Anthropic 
 2. In Netlify: **Add new site → Import from Git →** pick this repo.
 3. Netlify reads `netlify.toml` automatically (base directory `pitch-coach`, functions included). Just click **Deploy**.
 4. In **Site settings → Environment variables**, add:
-   - `ANTHROPIC_API_KEY` = your key
+   - `ANTHROPIC_API_KEY` = your Anthropic key (the AI prospect + scoring)
+   - `OPENAI_API_KEY` = your OpenAI key (hands-free speech-to-text on iPhone) — only needed if you want hands-free voice on iPhone
 5. Trigger a redeploy. Open the site URL on your phone and start training. Share that URL with your team.
 
 **Option B — from the command line**
@@ -44,6 +45,7 @@ npm install -g netlify-cli
 cd pitch-coach
 netlify init           # link or create a site
 netlify env:set ANTHROPIC_API_KEY sk-ant-...your-key...
+netlify env:set OPENAI_API_KEY sk-...your-openai-key...   # for iPhone hands-free voice
 netlify deploy --prod
 ```
 
@@ -62,13 +64,14 @@ Then open the local URL it prints (the `/api/coach` function runs locally too).
 
 ---
 
-## Voice support — you can talk to it on every device
+## Voice — fully hands-free, like talking to an AI agent
 
-- **Android Chrome / desktop Chrome / Edge:** fully hands-free. Tap the mic, the prospect talks, you talk back, and the mic re-opens automatically after each prospect line.
-- **iPhone / iPad (Safari):** the prospect talks out loud, and **you talk back using Apple's built-in dictation**. Tap the 🎤 button in the app to bring up the keyboard, press the **microphone key on the keyboard**, and just speak — your words land in the box, then tap ↑ to send. (Safari doesn't expose a hands-free speech API to web apps, so this on-device dictation is the way to talk on iPhone — it's free, private, and accurate.)
-- Toggle the prospect's voice on/off in Settings.
+- **Android Chrome / desktop Chrome / Edge:** the prospect talks, you talk back, and the mic re-opens automatically after each line. Uses the browser's built-in speech recognition — free, no extra key.
+- **iPhone / iPad (Safari):** also fully hands-free. After the prospect speaks, the mic opens automatically, listens until you stop talking, transcribes your words, and continues the call — no tapping per turn. Because Safari has no in-browser speech recognition, the app records a short clip and sends it to a transcription service (OpenAI Whisper) via the `/api/transcribe` function. **This requires an `OPENAI_API_KEY` on the deployed site** (see below).
+- The big 🎙 button shows it's listening. Tap it to send immediately ("I'm done"), or to start listening again if it timed out.
+- Turn hands-free off in Settings to fall back to typing / iPhone keyboard dictation.
 
-> iOS note: Safari only allows the prospect's voice to start after your first tap, so the spoken pitch begins once you tap into a section or the Full Call.
+> iOS note: Safari only lets the prospect's voice and the mic start after your first tap, so the call begins the moment you tap into a section or the Full Call. The first time, iOS will ask for microphone permission — tap Allow.
 
 ---
 

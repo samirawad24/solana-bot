@@ -47,16 +47,24 @@
         <input id="voiceOut" type="checkbox" checked />
         <span>Speak the prospect's lines out loud</span>
       </label>
+      <label class="field check">
+        <input id="handsFree" type="checkbox" checked />
+        <span>Hands-free voice — auto mic after each line (iPhone needs the transcription key below)</span>
+      </label>
       <details class="advanced">
-        <summary>Advanced: direct API key</summary>
+        <summary>Advanced: API keys</summary>
         <p class="hint">
-          Leave this empty when the app is deployed (the server holds the key).
-          Only paste a key here if you're testing the static files without a backend.
-          Stored only in this browser.
+          When the app is deployed with keys set on the server, leave these empty —
+          anyone with the link just uses it. Paste keys here only to test without a
+          server. Stored only in this browser.
         </p>
         <label class="field">
-          <span>Anthropic API key (optional)</span>
+          <span>Anthropic API key (for the AI prospect &amp; scoring)</span>
           <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>OpenAI API key (for hands-free speech-to-text on iPhone)</span>
+          <input id="openaiKey" type="password" placeholder="sk-..." autocomplete="off" />
         </label>
       </details>
       <div class="row">

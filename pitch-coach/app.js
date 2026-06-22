@@ -14,7 +14,7 @@
 
   // ---------- persistent settings ----------
   var S = Object.assign(
-    { agentName: "", difficulty: "medium", voiceOut: true, apiKey: "" },
+    { agentName: "", difficulty: "medium", voiceOut: true, handsFree: true, apiKey: "", openaiKey: "" },
     JSON.parse(localStorage.getItem("fexCoach") || "{}")
   );
   function saveSettings() { localStorage.setItem("fexCoach", JSON.stringify(S)); }
@@ -107,6 +107,107 @@
   }
   function stopListening() { if (recog && listening) { try { recog.stop(); } catch (e) {} } }
 
+  // ---------- hands-free voice (record + transcribe) ----------
+  // Used where the browser has no speech recognition (iPhone/iPad). The mic
+  // opens automatically after the prospect speaks, listens until you go quiet,
+  // then sends the audio to /api/transcribe (OpenAI Whisper) and continues —
+  // a true hands-free, agent-style call.
+  var HF_SUPPORTED = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+  var hf = { stream: null, rec: null, ctx: null, raf: 0, active: false, chunks: [], btn: null };
+
+  function hfEnabled() { return S.handsFree && HF_SUPPORTED; }
+
+  function hfEnsureMic() {
+    if (hf.stream) return Promise.resolve(true);
+    return navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(function (s) { hf.stream = s; return true; })
+      .catch(function () { return false; });
+  }
+
+  function hfPickMime() {
+    var opts = ["audio/mp4", "audio/webm", "audio/ogg"];
+    for (var i = 0; i < opts.length; i++) {
+      try { if (window.MediaRecorder.isTypeSupported(opts[i])) return opts[i]; } catch (e) {}
+    }
+    return "";
+  }
+
+  // Listen for one utterance with simple silence detection; resolve a Blob.
+  function hfListen(onBlob) {
+    if (!hf.stream) { onBlob(null); return; }
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!hf.ctx) { try { hf.ctx = new AC(); } catch (e) {} }
+    if (hf.ctx) { try { hf.ctx.resume(); } catch (e) {} }
+
+    var src = hf.ctx ? hf.ctx.createMediaStreamSource(hf.stream) : null;
+    var analyser = hf.ctx ? hf.ctx.createAnalyser() : null;
+    if (analyser) { analyser.fftSize = 512; src.connect(analyser); }
+    var data = analyser ? new Uint8Array(analyser.fftSize) : null;
+
+    var mime = hfPickMime();
+    hf.chunks = [];
+    try { hf.rec = mime ? new MediaRecorder(hf.stream, { mimeType: mime }) : new MediaRecorder(hf.stream); }
+    catch (e) { onBlob(null); return; }
+    hf.rec.ondataavailable = function (e) { if (e.data && e.data.size) hf.chunks.push(e.data); };
+    hf.rec.onstop = function () {
+      if (src) { try { src.disconnect(); } catch (e) {} }
+      if (hf.raf) { cancelAnimationFrame(hf.raf); hf.raf = 0; }
+      var type = (hf.rec && hf.rec.mimeType) || mime || "audio/mp4";
+      onBlob(new Blob(hf.chunks, { type: type }));
+    };
+
+    hf.active = true;
+    var startedAt = Date.now(), silenceStart = 0, sawSpeech = false;
+    var SILENCE_MS = 1100, MAX_MS = 20000, THRESH = 0.015;
+    try { hf.rec.start(); } catch (e) { onBlob(null); return; }
+    if (hf.btn) hf.btn.classList.add("listening");
+
+    function loop() {
+      if (!hf.active) return;
+      var now = Date.now();
+      if (data && analyser) {
+        analyser.getByteTimeDomainData(data);
+        var sum = 0;
+        for (var i = 0; i < data.length; i++) { var v = (data[i] - 128) / 128; sum += v * v; }
+        var rms = Math.sqrt(sum / data.length);
+        if (rms > THRESH) { sawSpeech = true; silenceStart = 0; }
+        else if (sawSpeech && !silenceStart) { silenceStart = now; }
+      }
+      var quietDone = sawSpeech && silenceStart && (now - silenceStart > SILENCE_MS);
+      var tooLong = now - startedAt > MAX_MS;
+      var noSpeechTimeout = !sawSpeech && (now - startedAt > 7000);
+      if (quietDone || tooLong || noSpeechTimeout) { hfStop(); return; }
+      hf.raf = requestAnimationFrame(loop);
+    }
+    if (data) hf.raf = requestAnimationFrame(loop);
+  }
+
+  function hfStop() {
+    hf.active = false;
+    if (hf.btn) hf.btn.classList.remove("listening");
+    if (hf.rec && hf.rec.state !== "inactive") { try { hf.rec.stop(); } catch (e) {} }
+  }
+  function hfReleaseMic() {
+    hfStop();
+    if (hf.stream) { hf.stream.getTracks().forEach(function (t) { try { t.stop(); } catch (e) {} }); hf.stream = null; }
+  }
+  function hfTranscribe(blob, onText) {
+    if (!blob || !blob.size) { onText(""); return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var b64 = String(reader.result).split(",")[1] || "";
+      fetch("/api/transcribe", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ audio: b64, mime: blob.type || "audio/mp4", openaiKey: S.openaiKey || undefined }),
+      })
+        .then(function (r) { return r.ok ? r.json() : r.text().then(function (t) { throw new Error("Transcription failed (" + r.status + "). " + t.slice(0, 140)); }); })
+        .then(function (res) { onText((res.text || "").trim()); })
+        .catch(function (err) { addMsg("sys", "⚠ " + err.message); onText(""); });
+    };
+    reader.readAsDataURL(blob);
+  }
+
   // ---------- API client ----------
   // Calls the serverless function by default. Falls back to direct browser
   // access only if the user pasted their own key in Settings.
@@ -152,7 +253,7 @@
   //  HOME
   // ========================================================================
   function renderHome() {
-    stopSpeak(); stopListening();
+    stopSpeak(); stopListening(); hfReleaseMic();
     setTitle("FEX Pitch Coach", false);
     footerNote.textContent = "Tap any section to practice it out loud with the AI prospect.";
 
@@ -213,12 +314,19 @@
     unlockAudio(); // we're inside the tap gesture — lets the prospect speak on iOS
     if (!S.agentName) { S.agentName = SCRIPT.agentNameDefault; saveSettings(); }
     var sec = opts.mode === "section" ? SCRIPT.sections.find(function (s) { return s.id === opts.sectionId; }) : null;
-    call = { mode: opts.mode, sectionId: opts.sectionId || null, section: sec, history: [], busy: false, draft: "", ended: false };
+    call = { mode: opts.mode, sectionId: opts.sectionId || null, section: sec, history: [], busy: false, draft: "", ended: false, hf: false };
+
+    // Hands-free where the browser lacks speech recognition (iPhone): record +
+    // transcribe. Where recognition exists (Android/desktop), use that for free.
+    var useHF = !recog && hfEnabled();
+    call.hf = useHF;
 
     setTitle(sec ? sec.title : "Full Call", true);
     footerNote.textContent = recog
       ? "Tap the mic and speak your line."
-      : (IS_IOS ? "Tap 🎤 to open your keyboard, then press the keyboard's mic to talk." : "Type your line.");
+      : useHF
+        ? "Hands-free: after the prospect talks, just speak — I'm listening."
+        : (IS_IOS ? "Tap 🎤 to open your keyboard, then press the keyboard's mic to talk." : "Type your line.");
 
     var hint = sec
       ? '<button class="btn ghost" id="hintBtn" style="flex:0 0 auto">💡 Hint</button>'
@@ -246,10 +354,10 @@
       hint +
       "</div>" +
       '<div class="composer">' +
-      (recog
+      ((recog || useHF)
         ? '<button class="mic" id="mic" aria-label="Tap to talk">🎙</button>'
         : (IS_IOS ? '<button class="mic" id="dictate" aria-label="Talk">🎤</button>' : "")) +
-      '<textarea id="ta" placeholder="' + (recog ? "Speak or type your line…" : (IS_IOS ? "Tap 🎤, then your keyboard mic, and talk…" : "Type your line…")) + '" rows="1"></textarea>' +
+      '<textarea id="ta" placeholder="' + (recog ? "Speak or type your line…" : useHF ? "Just talk — I'm listening…" : (IS_IOS ? "Tap 🎤, then your keyboard mic, and talk…" : "Type your line…")) + '" rows="1"></textarea>' +
       '<button class="btn primary send" id="send" aria-label="Send">↑</button>' +
       "</div>" +
       "</div>"
@@ -262,7 +370,14 @@
     dock.querySelector("#endBtn").addEventListener("click", endAndScore);
     if (sec) dock.querySelector("#hintBtn").addEventListener("click", function () { showHint(sec); });
     if (recog) setupMic(dock.querySelector("#mic"), ta);
+    else if (useHF) setupHF(dock.querySelector("#mic"));
     else if (IS_IOS) setupDictate(dock.querySelector("#dictate"), ta);
+
+    if (useHF) {
+      hfEnsureMic().then(function (ok) {
+        if (!ok) { call.hf = false; addMsg("sys", "I couldn't access the microphone. Allow mic access and reopen, or type your line."); }
+      });
+    }
 
     backBtn.onclick = function () { teardownCall(); renderHome(); };
 
@@ -322,15 +437,45 @@
     });
   }
 
+  // iPhone hands-free: open the mic, listen, transcribe, and continue — no taps.
+  function setupHF(btn) {
+    hf.btn = btn || null;
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      if (hf.active) { hfStop(); }      // "I'm done" — send this turn now
+      else { stopSpeak(); hfTurn(); }   // start (or retry) listening
+    });
+  }
+  function hfTurn() {
+    if (!call || call.ended || !call.hf) return;
+    setStatus("Listening — just talk…", false);
+    hfListen(function (blob) {
+      if (!call || call.ended) return;
+      setStatus("Transcribing…", false);
+      hfTranscribe(blob, function (text) {
+        if (!call || call.ended) return;
+        if (text) { call.hfEmpty = 0; sendTurn(text); }
+        else {
+          call.hfEmpty = (call.hfEmpty || 0) + 1;
+          if (call.hfEmpty < 2) { hfTurn(); }
+          else { call.hfEmpty = 0; setStatus("Tap 🎙 when ready to talk", false); }
+        }
+      });
+    });
+  }
+
   function prospectSays(text) {
     addMsg("them", text);
     setStatus("Prospect speaking…", false);
     speak(text, function () {
+      if (!call || call.ended) return;
       setStatus("Live call", true);
-      // Hands-free: after the prospect finishes, open the mic automatically.
-      if (recog && S.voiceOut && !call.ended) {
+      // After the prospect finishes, open the mic automatically.
+      if (recog && S.voiceOut) {
         var mic = document.getElementById("mic");
-        if (mic) { /* auto-listen */ mic.click(); }
+        if (mic) mic.click();
+      } else if (call.hf) {
+        hfTurn();
       }
     });
   }
@@ -355,7 +500,7 @@
 
   function endAndScore() {
     if (!call || call.busy) return;
-    stopSpeak(); stopListening();
+    stopSpeak(); stopListening(); hfStop();
     call.ended = true;
     if (call.history.length === 0) { addMsg("sys", "Say at least one line before scoring."); return; }
     var dock = document.getElementById("dock");
@@ -391,7 +536,7 @@
     var node = h('<div class="msg them"><div class="who">Prospect</div><span class="typing"><i></i><i></i><i></i></span></div>');
     chat.appendChild(node); window.scrollTo(0, document.body.scrollHeight); return node;
   }
-  function teardownCall() { stopSpeak(); stopListening(); call = null; var d = document.getElementById("dock"); if (d) d.remove(); backBtn.onclick = null; }
+  function teardownCall() { stopSpeak(); stopListening(); hfReleaseMic(); hf.btn = null; call = null; var d = document.getElementById("dock"); if (d) d.remove(); backBtn.onclick = null; }
 
   // ========================================================================
   //  SCORE
@@ -517,14 +662,18 @@
     document.getElementById("agentName").value = S.agentName;
     document.getElementById("difficulty").value = S.difficulty;
     document.getElementById("voiceOut").checked = S.voiceOut;
+    document.getElementById("handsFree").checked = S.handsFree;
     document.getElementById("apiKey").value = S.apiKey;
+    document.getElementById("openaiKey").value = S.openaiKey;
     if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
   });
   document.getElementById("saveSettings").addEventListener("click", function () {
     S.agentName = document.getElementById("agentName").value.trim();
     S.difficulty = document.getElementById("difficulty").value;
     S.voiceOut = document.getElementById("voiceOut").checked;
+    S.handsFree = document.getElementById("handsFree").checked;
     S.apiKey = document.getElementById("apiKey").value.trim();
+    S.openaiKey = document.getElementById("openaiKey").value.trim();
     saveSettings();
     setTimeout(renderHome, 0);
   });
