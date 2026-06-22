@@ -64,14 +64,18 @@ Then open the local URL it prints (the `/api/coach` function runs locally too).
 
 ---
 
-## Voice — fully hands-free, like talking to an AI agent
+## Voice — fully hands-free, identical on every device
 
-- **Android Chrome / desktop Chrome / Edge:** the prospect talks, you talk back, and the mic re-opens automatically after each line. Uses the browser's built-in speech recognition — free, no extra key.
-- **iPhone / iPad (Safari):** also fully hands-free. After the prospect speaks, the mic opens automatically, listens until you stop talking, transcribes your words, and continues the call — no tapping per turn. Because Safari has no in-browser speech recognition, the app records a short clip and sends it to a transcription service (OpenAI Whisper) via the `/api/transcribe` function. **This requires an `OPENAI_API_KEY` on the deployed site** (see below).
+Hands-free uses the **same engine everywhere** (iPhone, Android, desktop) so the experience is consistent: after the prospect speaks, the mic opens automatically, listens until you stop talking, transcribes what you said, and continues the call — no tapping between turns.
+
+- It records a short clip each turn and sends it to a transcription service (OpenAI Whisper) via the `/api/transcribe` function, then continues. **This requires an `OPENAI_API_KEY` on the deployed site** (see below) — on iPhone *and* Android.
 - The big 🎙 button shows it's listening. Tap it to send immediately ("I'm done"), or to start listening again if it timed out.
-- Turn hands-free off in Settings to fall back to typing / iPhone keyboard dictation.
+- Works in any browser that allows microphone access (Safari and Chrome on iPhone, Chrome on Android, Chrome/Edge on desktop).
+- **Turn hands-free off in Settings** to fall back to the free, no-key options: the browser's built-in speech recognition on Android/desktop Chrome, or iPhone keyboard dictation. (Those differ by device — hands-free is the mode that's identical everywhere.)
 
-> iOS note: Safari only lets the prospect's voice and the mic start after your first tap, so the call begins the moment you tap into a section or the Full Call. The first time, iOS will ask for microphone permission — tap Allow.
+> Why unified: on iPhone, Apple forces every browser (including Chrome) to use Safari's engine, which has no in-browser speech recognition. Routing all devices through the same transcription service is what makes the hands-free call behave the same on iPhone and Android.
+
+> First tap: browsers only let the prospect's voice and the mic start after a tap, so the call begins the moment you tap into a section or the Full Call. The first time, the browser asks for microphone permission — tap Allow.
 
 ---
 

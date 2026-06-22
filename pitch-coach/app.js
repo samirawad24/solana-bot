@@ -316,16 +316,17 @@
     var sec = opts.mode === "section" ? SCRIPT.sections.find(function (s) { return s.id === opts.sectionId; }) : null;
     call = { mode: opts.mode, sectionId: opts.sectionId || null, section: sec, history: [], busy: false, draft: "", ended: false, hf: false };
 
-    // Hands-free where the browser lacks speech recognition (iPhone): record +
-    // transcribe. Where recognition exists (Android/desktop), use that for free.
-    var useHF = !recog && hfEnabled();
+    // Unified hands-free: use the same record + transcribe engine on EVERY
+    // device so iPhone and Android behave identically. The browser's built-in
+    // speech recognition is only a fallback when hands-free is turned off.
+    var useHF = hfEnabled();
     call.hf = useHF;
 
     setTitle(sec ? sec.title : "Full Call", true);
-    footerNote.textContent = recog
-      ? "Tap the mic and speak your line."
-      : useHF
-        ? "Hands-free: after the prospect talks, just speak — I'm listening."
+    footerNote.textContent = useHF
+      ? "Hands-free: after the prospect talks, just speak — I'm listening."
+      : recog
+        ? "Tap the mic and speak your line."
         : (IS_IOS ? "Tap 🎤 to open your keyboard, then press the keyboard's mic to talk." : "Type your line.");
 
     var hint = sec
@@ -357,7 +358,7 @@
       ((recog || useHF)
         ? '<button class="mic" id="mic" aria-label="Tap to talk">🎙</button>'
         : (IS_IOS ? '<button class="mic" id="dictate" aria-label="Talk">🎤</button>' : "")) +
-      '<textarea id="ta" placeholder="' + (recog ? "Speak or type your line…" : useHF ? "Just talk — I'm listening…" : (IS_IOS ? "Tap 🎤, then your keyboard mic, and talk…" : "Type your line…")) + '" rows="1"></textarea>' +
+      '<textarea id="ta" placeholder="' + (useHF ? "Just talk — I'm listening…" : recog ? "Speak or type your line…" : (IS_IOS ? "Tap 🎤, then your keyboard mic, and talk…" : "Type your line…")) + '" rows="1"></textarea>' +
       '<button class="btn primary send" id="send" aria-label="Send">↑</button>' +
       "</div>" +
       "</div>"
@@ -369,8 +370,8 @@
     dock.querySelector("#send").addEventListener("click", function () { sendTurn(ta.value); ta.value = ""; ta.style.height = "auto"; });
     dock.querySelector("#endBtn").addEventListener("click", endAndScore);
     if (sec) dock.querySelector("#hintBtn").addEventListener("click", function () { showHint(sec); });
-    if (recog) setupMic(dock.querySelector("#mic"), ta);
-    else if (useHF) setupHF(dock.querySelector("#mic"));
+    if (useHF) setupHF(dock.querySelector("#mic"));
+    else if (recog) setupMic(dock.querySelector("#mic"), ta);
     else if (IS_IOS) setupDictate(dock.querySelector("#dictate"), ta);
 
     if (useHF) {
@@ -471,11 +472,11 @@
       if (!call || call.ended) return;
       setStatus("Live call", true);
       // After the prospect finishes, open the mic automatically.
-      if (recog && S.voiceOut) {
+      if (call.hf) {
+        hfTurn();
+      } else if (recog && S.voiceOut) {
         var mic = document.getElementById("mic");
         if (mic) mic.click();
-      } else if (call.hf) {
-        hfTurn();
       }
     });
   }
